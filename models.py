@@ -2,47 +2,90 @@ import tensorflow as tf
 from layers import *
 import pdb
 
-def generator(x, batch_size, is_train, reuse):
+def photo_to_sketch_generator(x, batch_size, is_train, reuse):
 
   with tf.variable_scope('GEN', reuse=reuse) as vs:
-    with tf.variable_scope('fc1', reuse=reuse):
-      hidden_num = 1024
-      x = fc_factory(x, 4*hidden_num, is_train, reuse)
-      x = tf.reshape(x, shape = [batch_size,2,2,1024])
-      print (x.shape)
 
-    with tf.variable_scope('deconv1', reuse=reuse):
-      hidden_num /= 4
-      x = t_conv_factory(x, hidden_num,[batch_size,4,4,256] ,3, 1, is_train, reuse)
-      print (x.shape)
+    with tf.variable_scope('Encoder', reuse=reuse) as vs_enc:
+      with tf.variable_scope('conv1', reuse=reuse):
+        hidden_num = 64
+        x = conv_factory_leaky(x, hidden_num, 3, 2, is_train, reuse)
+        print (x.shape)
 
-    with tf.variable_scope('deconv2', reuse=reuse):
-      hidden_num /= 4
-      x = t_conv_factory(x, hidden_num,[batch_size,8,8,64] ,3, 1, is_train, reuse)
-      print (x.shape)
+      with tf.variable_scope('conv2', reuse=reuse):
+        hidden_num *= 2
+        x = conv_factory_leaky(x, hidden_num, 3, 2, is_train, reuse)
+        print (x.shape)
 
-    with tf.variable_scope('deconv3', reuse=reuse):
-      hidden_num /= 4
-      x = t_conv_factory(x, hidden_num,[batch_size,16,16,16] ,3, 1, is_train, reuse)
-      print (x.shape)
+      with tf.variable_scope('conv3', reuse=reuse):
+        hidden_num *= 2
+        x = conv_factory_leaky(x, hidden_num, 3, 2, is_train, reuse)
+        print (x.shape)
 
-    with tf.variable_scope('deconv4', reuse=reuse):
-      hidden_num /= 4
-      x = t_conv_factory(x, hidden_num,[batch_size,32,32,4] ,3, 1, is_train, reuse)
-      print (x.shape)
+      with tf.variable_scope('conv4', reuse=reuse):
+        hidden_num *= 2
+        x = conv_factory_leaky(x, hidden_num, 3, 2, is_train, reuse)
+        print (x.shape)
 
-    # with tf.variable_scope('deconv5', reuse=reuse):
-    #   hidden_num /= 2
-    #   x = t_conv_factory(x, hidden_num,[batch_size,32,32,4] ,3, 1, is_train, reuse)
-    #   print (x.shape)
+      with tf.variable_scope('conv5', reuse=reuse):
+        hidden_num *= 2
+        x = conv_factory_leaky(x, hidden_num, 3, 2, is_train, reuse)
+        print (x.shape)
 
-    with tf.variable_scope('deconv6', reuse=reuse):
-      hidden_num = 1
-      x = t_conv_factory_tanh(x, hidden_num,[batch_size,64,64,1] ,3, 1, is_train, reuse)
-      print (x.shape)
+      with tf.variable_scope('conv6', reuse=reuse):
+        x = conv_factory_leaky(x, hidden_num, 3, 2, is_train, reuse)
+        print (x.shape)
 
-  variables = tf.contrib.framework.get_variables(vs)
-  return x,variables
+      # with tf.variable_scope('deconv5', reuse=reuse):
+      #   hidden_num /= 2
+      #   x = t_conv_factory(x, hidden_num,[batch_size,32,32,4] ,3, 1, is_train, reuse)
+      #   print (x.shape)
+
+      with tf.variable_scope('dropout', reuse=reuse):
+        x = tf.nn.dropout(x, keep_prob=0.5)
+        print ('Dropout layer : ', x.shape)
+
+    with tf.variable_scope('Decoder', reuse=reuse) as vs_dec:
+      with tf.variable_scope('deconv1', reuse=reuse):
+        out_channels = hidden_num
+        x = t_conv_factory_leaky(x, hidden_num, [batch_size,7,8,out_channels], 3, 1, is_train, reuse)
+        print (x.shape)
+
+      with tf.variable_scope('deconv2', reuse=reuse):
+        hidden_num /= 2
+        out_channels = hidden_num
+        x = t_conv_factory_leaky(x, hidden_num, [batch_size,13,16,out_channels], 3, 1, is_train, reuse)
+        print (x.shape)
+
+      with tf.variable_scope('deconv3', reuse=reuse):
+        hidden_num /= 2
+        out_channels = hidden_num
+        x = t_conv_factory_leaky(x, hidden_num, [batch_size,25,32,out_channels], 3, 1, is_train, reuse)
+        print (x.shape)
+
+      with tf.variable_scope('deconv4', reuse=reuse):
+        hidden_num /= 2
+        out_channels = hidden_num
+        x = t_conv_factory_leaky(x, hidden_num, [batch_size,50,63,out_channels], 3, 1, is_train, reuse)
+        print (x.shape)
+
+      with tf.variable_scope('deconv5', reuse=reuse):
+        hidden_num /= 2
+        out_channels = hidden_num
+        x = t_conv_factory_leaky(x, hidden_num, [batch_size,100,125,out_channels], 3, 1, is_train, reuse)
+        print (x.shape)
+
+      with tf.variable_scope('deconv6', reuse=reuse):
+        hidden_num = 1
+        out_channels = hidden_num
+        x = t_conv_factory_leaky(x, hidden_num, [batch_size,200,250,out_channels], 3, 1, is_train, reuse)
+        print (x.shape)
+
+
+    pdb.set_trace()
+
+    variables = tf.contrib.framework.get_variables(vs)
+    return x,variables
 
 
 def discriminator(x, batch_size, is_train, reuse):

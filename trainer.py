@@ -35,19 +35,29 @@ class Trainer(object):
     # Exponential learning rate decay
     self.epoch_num = config.max_step / config.epoch_step
     g_decay_factor = (config.g_min_lr / config.g_lr)**(1./(self.epoch_num-1.))
-    self.g_lr_update = tf.assign(self.g_lr, self.g_lr*decay_factor, name='g_lr_update')
+    self.g_lr_update = tf.assign(self.g_lr, self.g_lr*g_decay_factor, name='g_lr_update')
 
     d_decay_factor = (config.d_min_lr / config.d_lr)**(1./(self.epoch_num-1.))
-    self.d_lr_update = tf.assign(self.d_lr, self.d_lr*decay_factor, name='d_lr_update')
+    self.d_lr_update = tf.assign(self.d_lr, self.d_lr*d_decay_factor, name='d_lr_update')
 
     self.model_dir = config.model_dir
     self.load_path = config.load_path
 
-    self.generator = generator_v2
+    if self.mode == 'photo_to_sketch_generator':
+        self.generator = photo_to_sketch_generator
+    elif self.mode == 'photo_to_sketch_GAN':
+        self.generator = photo_to_sketch_generator
+    elif self.mode == 'sketch_to_photo_GAN':
+        self.generator = sketch_to_photo_generator
+    elif self.mode == 'photo_to_sketch_GAN_UNET':
+        self.generator = photo_to_sketch_generator_UNET
+    else:
+        print('Wrong mode selected. Select one of 4 available choices')
+
     self.discriminator = discriminator
 
     self.build_model()
-    self.build_gen_eval_model()
+    # self.build_gen_eval_model()
 
     self.saver = tf.train.Saver()
 
@@ -75,11 +85,12 @@ class Trainer(object):
         x = self.x
         self.y = self.sketch_loader
         y = self.y
-        self.G_x, self.G_var = self.photo_to_sketch_generator(x, self.batch_size, 
+        self.G_x, self.G_var = self.generator(x, self.batch_size, 
           is_train = True, reuse = False)
         self.G_loss = tf.reduce_mean(tf.abs(self.G_x-y)) # L1 loss
         self.D_loss = tf.zeros(self.G_loss.shape)
         gen_optimizer = tf.train.AdamOptimizer(self.g_lr, beta1 = 0.5, beta2=0.999)
+        wd_optimizer = tf.train.GradientDescentOptimizer(self.g_lr)
         for var in tf.trainable_variables():
             print(var)
             weight_decay = tf.multiply(tf.nn.l2_loss(var), self.wd_ratio)
@@ -93,8 +104,9 @@ class Trainer(object):
         x = self.x
         self.y = self.sketch_loader
         y = self.y
-        self.G_x, self.G_var = self.photo_to_sketch_generator(x, self.batch_size, 
+        self.G_x, self.G_var = self.generator(x, self.batch_size, 
           is_train = True, reuse = False)
+        pdb.set_trace()
         D_G_x_in = tf.concat([G_x,x], axis=1) # Concatenates image and sketch along channel axis for generated image
         D_y_in = tf.concat([y,x], axis=1) # Concatenates image and sketch along channel axis for ground truth image
         D_in = tf.concat([D_G_x_in, D_y_in], axis=0) # Batching ground truth and generator output as input for discriminator
@@ -108,6 +120,7 @@ class Trainer(object):
         self.D_loss = D_loss_fake + D_loss_real
         gen_optimizer = tf.train.AdamOptimizer(self.g_lr, beta1 = 0.5, beta2=0.999)
         disc_optimizer = tf.train.AdamOptimizer(self.d_lr, beta1 = 0.5, beta2=0.999)
+        wd_optimizer = tf.train.GradientDescentOptimizer(self.g_lr)
         for var in tf.trainable_variables():
             print(var)
             weight_decay = tf.multiply(tf.nn.l2_loss(var), self.wd_ratio)
@@ -122,7 +135,7 @@ class Trainer(object):
         x = self.x
         self.y = self.img_loader
         y = self.y
-        self.G_x, self.G_var = self.sketch_to_photo_generator(x, self.batch_size, 
+        self.G_x, self.G_var = self.generator(x, self.batch_size, 
           is_train = True, reuse = False)
         D_G_x_in = tf.concat([G_x,x], axis=1) # Concatenates image and sketch along channel axis for generated image
         D_y_in = tf.concat([y,x], axis=1) # Concatenates image and sketch along channel axis for ground truth image
@@ -137,6 +150,7 @@ class Trainer(object):
         self.D_loss = D_loss_fake + D_loss_real
         gen_optimizer = tf.train.AdamOptimizer(self.g_lr, beta1 = 0.5, beta2=0.999)
         disc_optimizer = tf.train.AdamOptimizer(self.d_lr, beta1 = 0.5, beta2=0.999)
+        wd_optimizer = tf.train.GradientDescentOptimizer(self.g_lr)
         for var in tf.trainable_variables():
             print(var)
             weight_decay = tf.multiply(tf.nn.l2_loss(var), self.wd_ratio)
@@ -146,12 +160,12 @@ class Trainer(object):
         self.D_optim = disc_optimizer.minimize(self.D_loss, var_list=self.D_var)
         self.wd_optim = wd_optimizer.minimize(wd_loss)
 
-    elif self.mode == 'photo_to_sketch_GAN_skip_connections':
+    elif self.mode == 'photo_to_sketch_GAN_UNET':
         self.x = self.img_loader
         x = self.x
         self.y = self.sketch_loader
         y = self.y
-        self.G_x, self.G_var = self.photo_to_sketch_generator_skip_connections(x, self.batch_size, 
+        self.G_x, self.G_var = self.generator(x, self.batch_size, 
           is_train = True, reuse = False)
         D_G_x_in = tf.concat([G_x,x], axis=1) # Concatenates image and sketch along channel axis for generated image
         D_y_in = tf.concat([y,x], axis=1) # Concatenates image and sketch along channel axis for ground truth image
@@ -166,6 +180,7 @@ class Trainer(object):
         self.D_loss = D_loss_fake + D_loss_real
         gen_optimizer = tf.train.AdamOptimizer(self.g_lr, beta1 = 0.5, beta2=0.999)
         disc_optimizer = tf.train.AdamOptimizer(self.d_lr, beta1 = 0.5, beta2=0.999)
+        wd_optimizer = tf.train.GradientDescentOptimizer(self.g_lr)
         for var in tf.trainable_variables():
             print(var)
             weight_decay = tf.multiply(tf.nn.l2_loss(var), self.wd_ratio)
@@ -188,17 +203,17 @@ class Trainer(object):
       tf.summary.scalar('D_loss', self.D_loss)
     ])
 
-  def build_gen_eval_model(self):
-    self.z_test = tf.placeholder(dtype = tf.float32, shape = [self.batch_size_eval,100])
-    z_test = self.z_test
+  # def build_gen_eval_model(self):
+  #   self.z_test = tf.placeholder(dtype = tf.float32, shape = [self.batch_size_eval,100])
+  #   z_test = self.z_test
 
-    self.G_z_test, var = self.generator(z_test, self.batch_size_eval, 
-      is_train=False, reuse=True)
+  #   self.G_z_test, var = self.generator(z_test, self.batch_size_eval, 
+  #     is_train=False, reuse=True)
 
-    G_z_test = self.G_z_test
+  #   G_z_test = self.G_z_test
 
-    self.D_G_z_test, var = self.discriminator(G_z_test, self.batch_size_eval, 
-      is_train=False, reuse=True)
+  #   self.D_G_z_test, var = self.discriminator(G_z_test, self.batch_size_eval, 
+  #     is_train=False, reuse=True)
 
 
   def train(self):
@@ -214,20 +229,20 @@ class Trainer(object):
         # 'wd_optim': self.wd_optim,
         'G_loss': self.G_loss,
         # 'D_x': self.D_x,
-        'D_loss': self.D_loss,
-        # 'D_G_z':self.D_G_z,
-        # 'G_z': self.G_z
+        # 'D_loss': self.D_loss,
+        # 'D_G_x':self.D_G_x,
+        'G_x': self.G_x
         }
 
-      fetch_dict_disc = {
-        'disc_optim': self.D_optim,
-        # 'wd_optim': self.wd_optim,
-        'D_loss': self.D_loss,
-        # 'D_x': self.D_x,
-        # 'G_loss': self.G_loss,
-        # 'D_G_z':self.D_G_z,
-        # 'G_z': self.G_z
-        }
+      # fetch_dict_disc = {
+      #   'disc_optim': self.D_optim,
+      #   # 'wd_optim': self.wd_optim,
+      #   'D_loss': self.D_loss,
+      #   # 'D_x': self.D_x,
+      #   # 'G_loss': self.G_loss,
+      #   # 'D_G_z':self.D_G_z,
+      #   # 'G_z': self.G_z
+      #   }
 
       if step % self.log_step == self.log_step - 1:
         fetch_dict_gen.update({
@@ -235,16 +250,21 @@ class Trainer(object):
           'd_lr': self.d_lr,
           'summary': self.summary_op })
 
-      if (step > 2000 and step <= 3000 and D_loss < 0.1) or step < 10:
-        result = self.sess.run(fetch_dict_gen)#, feed_dict =feed_dict )
-        G_loss = result['G_loss']
-        D_loss = result['D_loss']
-      else:
-        result = self.sess.run(fetch_dict_disc)#, feed_dict =feed_dict )
-        result = self.sess.run(fetch_dict_disc)#, feed_dict =feed_dict )
-        D_loss = result['D_loss']
-        result = self.sess.run(fetch_dict_gen)#, feed_dict =feed_dict )
-        G_loss = result['G_loss']
+      result = self.sess.run(fetch_dict_gen)
+      G_loss = result['G_loss']
+      G_x = result['G_x']
+      pdb.set_trace()
+
+      # if (step > 2000 and step <= 3000 and D_loss < 0.1) or step < 10:
+        # result = self.sess.run(fetch_dict_gen)#, feed_dict =feed_dict )
+        # G_loss = result['G_loss']
+        # D_loss = result['D_loss']
+      # else:
+        # result = self.sess.run(fetch_dict_disc)#, feed_dict =feed_dict )
+        # result = self.sess.run(fetch_dict_disc)#, feed_dict =feed_dict )
+        # D_loss = result['D_loss']
+        # result = self.sess.run(fetch_dict_gen)#, feed_dict =feed_dict )
+        # G_loss = result['G_loss']
 
       # if flag or step < 100:
       #   result = self.sess.run(fetch_dict_gen)#, feed_dict =feed_dict )
@@ -266,10 +286,10 @@ class Trainer(object):
         self.summary_writer.add_summary(result['summary'], step)
         self.summary_writer.flush()
 
-        if D_loss < 0.2:
-          flag = True
-        else:
-          flag = False
+        # if D_loss < 0.2:
+        #   flag = True
+        # else:
+        #   flag = False
 
         # plt.figure(1)
         # plt.subplot(221)
@@ -288,60 +308,64 @@ class Trainer(object):
         # plt.savefig(self.config.model_dir + '/gen_out_iter_iter_%d'%(step) +'.png' )
         # plt.close('all')
 
-        lr = result['lr']
+        g_lr = result['g_lr']
+        print("\n[{}/{}:{:.6f}] Gen_Loss: {:.6f} " . \
+              format(step, self.max_step, g_lr, G_loss))
 
 
-        print("\n[{}/{}:{:.6f}] Gen_Loss: {:.6f} Disc_Loss: {:.6f}" . \
-              format(step, self.max_step, lr, G_loss, D_loss))
+        # print("\n[{}/{}:{:.6f}] Gen_Loss: {:.6f} Disc_Loss: {:.6f}" . \
+              # format(step, self.max_step, lr, G_loss, D_loss))
+
         sys.stdout.flush()
 
-      if step % self.save_step == self.save_step - 1:
-        self.saver.save(self.sess, self.model_dir + '/model')
+      # if step % self.save_step == self.save_step - 1:
+      #   self.saver.save(self.sess, self.model_dir + '/model')
 
 
-        images = np.zeros((64*10,64*10))
-        gen_images = np.zeros((64*10,64*10))
+      #   images = np.zeros((64*10,64*10))
+      #   gen_images = np.zeros((64*10,64*10))
 
-        for i in range(10):
-          for j in range(10):
-            z_test = np.random.uniform(-1.0,1.0,
-            size=[self.batch_size_eval,100]).astype(np.float32)
+      #   for i in range(10):
+      #     for j in range(10):
+      #       z_test = np.random.uniform(-1.0,1.0,
+      #       size=[self.batch_size_eval,100]).astype(np.float32)
         
-            feed_dict_gen = {self.z_test : z_test}
+      #       feed_dict_gen = {self.z_test : z_test}
 
-            fetch_dict_gen = {'G_z': self.G_z_test,
-                              'D_G_z': self.D_G_z_test,
-                              'image': self.x}
-            result = self.sess.run(fetch_dict_gen,feed_dict=feed_dict_gen)
+      #       fetch_dict_gen = {'G_z': self.G_z_test,
+      #                         'D_G_z': self.D_G_z_test,
+      #                         'image': self.x}
+      #       result = self.sess.run(fetch_dict_gen,feed_dict=feed_dict_gen)
 
-            idx = i*10 + j
-            im = result['image'][idx,:,:,0]
-            images[i*64:(i+1)*64,j*64:(j+1)*64] = im 
-            gen_im = result['G_z'][idx,:,:,0]
-            gen_images[i*64:(i+1)*64,j*64:(j+1)*64] = gen_im
+      #       idx = i*10 + j
+      #       im = result['image'][idx,:,:,0]
+      #       images[i*64:(i+1)*64,j*64:(j+1)*64] = im 
+      #       gen_im = result['G_z'][idx,:,:,0]
+      #       gen_images[i*64:(i+1)*64,j*64:(j+1)*64] = gen_im
 
-        plt.figure(1)
-        plt.title('org_imgs_iter_%d'%(step))
-        plt.imshow(images, cmap='gray')
-        plt.savefig(self.config.model_dir + '/org_imgs_iter_%d'%(step) +'.png' )
-        plt.close('all')
+      #   plt.figure(1)
+      #   plt.title('org_imgs_iter_%d'%(step))
+      #   plt.imshow(images, cmap='gray')
+      #   plt.savefig(self.config.model_dir + '/org_imgs_iter_%d'%(step) +'.png' )
+      #   plt.close('all')
 
-        plt.figure(1)
-        plt.title('gen_imgs_iter_%d'%(step))
-        plt.imshow(gen_images, cmap='gray')
-        plt.savefig(self.config.model_dir + '/gen_imgs_iter_%d'%(step) +'.png' )
-        plt.close('all')
+      #   plt.figure(1)
+      #   plt.title('gen_imgs_iter_%d'%(step))
+      #   plt.imshow(gen_images, cmap='gray')
+      #   plt.savefig(self.config.model_dir + '/gen_imgs_iter_%d'%(step) +'.png' )
+      #   plt.close('all')
 
-        # D_G_z = np.mean(result['D_G_z'])
+      #   # D_G_z = np.mean(result['D_G_z'])
 
-        # sys.stdout.flush()
-        # print("Disc_score: {:.6f}" . \
-        #   format(D_G_z))
-        # sys.stdout.flush()
+      #   # sys.stdout.flush()
+      #   # print("Disc_score: {:.6f}" . \
+      #   #   format(D_G_z))
+      #   # sys.stdout.flush()
 
 
       if step % self.epoch_step == self.epoch_step - 1:
-        self.sess.run([self.lr_update])
+        self.sess.run([self.g_lr_update])
+        self.sess.run([self.d_lr_update])
 
 
   def gen_image(self):

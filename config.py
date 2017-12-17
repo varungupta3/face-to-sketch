@@ -21,7 +21,7 @@ data_arg.add_argument('--dataset', type=str, default='cufs_photos', choices=['cu
 data_arg.add_argument('--batch_size', type=int, default=10)
 data_arg.add_argument('--batch_size_eval', type=int, default=10)
 data_arg.add_argument('--mode', type=str, default='photo_to_sketch_generator', choices=['photo_to_sketch_generator',
-	'photo_to_sketch_GAN', 'sketch_to_photo_GAN', 'photo_to_sketch_GAN_skip_connections'])
+	'photo_to_sketch_GAN', 'sketch_to_photo_GAN', 'photo_to_sketch_GAN_UNET'])
 
 # Training / test parameters
 train_arg = add_argument_group('Training')
