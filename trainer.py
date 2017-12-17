@@ -12,9 +12,11 @@ from models import *
 
 
 class Trainer(object):
-  def __init__(self, config, data_loader):
+  def __init__(self, config, img_loader, sketch_loader):
     self.config = config
-    self.data_loader = data_loader
+    self.img_loader = img_loader
+    self.sketch_loader = sketch_loader
+    self.mode = config.mode
 
     self.batch_size = config.batch_size
     self.batch_size_eval = config.batch_size_eval
@@ -27,12 +29,16 @@ class Trainer(object):
     self.save_step = config.save_step
     self.wd_ratio = config.wd_ratio
 
-    self.lr = tf.Variable(config.lr, name='lr')
+    self.g_lr = tf.Variable(config.g_lr, name='g_lr')
+    self.d_lr = tf.Variable(config.d_lr, name='d_lr')
 
     # Exponential learning rate decay
     self.epoch_num = config.max_step / config.epoch_step
-    decay_factor = (config.min_lr / config.lr)**(1./(self.epoch_num-1.))
-    self.lr_update = tf.assign(self.lr, self.lr*decay_factor, name='lr_update')
+    g_decay_factor = (config.g_min_lr / config.g_lr)**(1./(self.epoch_num-1.))
+    self.g_lr_update = tf.assign(self.g_lr, self.g_lr*decay_factor, name='g_lr_update')
+
+    d_decay_factor = (config.d_min_lr / config.d_lr)**(1./(self.epoch_num-1.))
+    self.d_lr_update = tf.assign(self.d_lr, self.d_lr*decay_factor, name='d_lr_update')
 
     self.model_dir = config.model_dir
     self.load_path = config.load_path
@@ -62,72 +68,124 @@ class Trainer(object):
     self.sess = sv.prepare_or_wait_for_session(config=sess_config)
 
   def build_model(self):
-    self.x = self.data_loader
-    x = self.x
-    # self.z = tf.placeholder(dtype = tf.float32, shape = [self.batch_size,100])
-    self.z = tf.random_uniform(shape = [self.batch_size,100],minval=-1.0,maxval=1.0)
 
-    z = self.z
+    if self.mode == 'photo_to_sketch_generator':
+        # Use only L1 loss or both L1 and discriminator loss
+        self.x = self.img_loader
+        x = self.x
+        self.y = self.sketch_loader
+        y = self.y
+        self.G_x, self.G_var = self.photo_to_sketch_generator(x, self.batch_size, 
+          is_train = True, reuse = False)
+        self.G_loss = tf.reduce_mean(tf.abs(self.G_x-y)) # L1 loss
+        self.D_loss = tf.zeros(self.G_loss.shape)
+        gen_optimizer = tf.train.AdamOptimizer(self.g_lr, beta1 = 0.5, beta2=0.999)
+        for var in tf.trainable_variables():
+            print(var)
+            weight_decay = tf.multiply(tf.nn.l2_loss(var), self.wd_ratio)
+            tf.add_to_collection('losses', weight_decay)
+        wd_loss = tf.add_n(tf.get_collection('losses'))
+        self.G_optim = gen_optimizer.minimize(self.G_loss, var_list=self.G_var)
+        self.wd_optim = wd_optimizer.minimize(wd_loss)
 
-    self.G_z, self.G_var = self.generator(z, self.batch_size, 
-      is_train = True, reuse = False)
+    elif self.mode == 'photo_to_sketch_GAN':
+        self.x = self.img_loader
+        x = self.x
+        self.y = self.sketch_loader
+        y = self.y
+        self.G_x, self.G_var = self.photo_to_sketch_generator(x, self.batch_size, 
+          is_train = True, reuse = False)
+        D_G_x_in = tf.concat([G_x,x], axis=1) # Concatenates image and sketch along channel axis for generated image
+        D_y_in = tf.concat([y,x], axis=1) # Concatenates image and sketch along channel axis for ground truth image
+        D_in = tf.concat([D_G_x_in, D_y_in], axis=0) # Batching ground truth and generator output as input for discriminator
+        D_out, self.D_var = self.discriminator(D_in, self.batch_size*2,
+            is_train=True, reuse=False)
+        self.D_G_x = D_out[0:self.batch_size]
+        self.D_y = D_out[self.batch_size:]
+        self.G_loss = tf.reduce_mean(tf.abs(self.G_x-y)) # L1 loss
+        D_loss_real = tf.reduce_mean(tf.log(tf.nn.sigmoid(self.D_y)))
+        D_loss_fake = tf.reduce_mean(tf.log(tf.constant([1],dtype=tf.float64) - tf.nn.sigmoid(self.D_G_x)))
+        self.D_loss = D_loss_fake + D_loss_real
+        gen_optimizer = tf.train.AdamOptimizer(self.g_lr, beta1 = 0.5, beta2=0.999)
+        disc_optimizer = tf.train.AdamOptimizer(self.d_lr, beta1 = 0.5, beta2=0.999)
+        for var in tf.trainable_variables():
+            print(var)
+            weight_decay = tf.multiply(tf.nn.l2_loss(var), self.wd_ratio)
+            tf.add_to_collection('losses', weight_decay)
+        wd_loss = tf.add_n(tf.get_collection('losses'))
+        self.G_optim = gen_optimizer.minimize(self.G_loss, var_list=self.G_var)
+        self.D_optim = disc_optimizer.minimize(self.D_loss, var_list=self.D_var)
+        self.wd_optim = wd_optimizer.minimize(wd_loss)
 
-    G_z = self.G_z
+    elif self.mode == 'sketch_to_photo_GAN':
+        self.x = self.sketch_loader
+        x = self.x
+        self.y = self.img_loader
+        y = self.y
+        self.G_x, self.G_var = self.sketch_to_photo_generator(x, self.batch_size, 
+          is_train = True, reuse = False)
+        D_G_x_in = tf.concat([G_x,x], axis=1) # Concatenates image and sketch along channel axis for generated image
+        D_y_in = tf.concat([y,x], axis=1) # Concatenates image and sketch along channel axis for ground truth image
+        D_in = tf.concat([D_G_x_in, D_y_in], axis=0) # Batching ground truth and generator output as input for discriminator
+        D_out, self.D_var = self.discriminator(D_in, self.batch_size*2,
+            is_train=True, reuse=False)
+        self.D_G_x = D_out[0:self.batch_size]
+        self.D_y = D_out[self.batch_size:]
+        self.G_loss = tf.reduce_mean(tf.abs(self.G_x-y)) # L1 loss
+        D_loss_real = tf.reduce_mean(tf.log(tf.nn.sigmoid(self.D_y)))
+        D_loss_fake = tf.reduce_mean(tf.log(tf.constant([1],dtype=tf.float64) - tf.nn.sigmoid(self.D_G_x)))
+        self.D_loss = D_loss_fake + D_loss_real
+        gen_optimizer = tf.train.AdamOptimizer(self.g_lr, beta1 = 0.5, beta2=0.999)
+        disc_optimizer = tf.train.AdamOptimizer(self.d_lr, beta1 = 0.5, beta2=0.999)
+        for var in tf.trainable_variables():
+            print(var)
+            weight_decay = tf.multiply(tf.nn.l2_loss(var), self.wd_ratio)
+            tf.add_to_collection('losses', weight_decay)
+        wd_loss = tf.add_n(tf.get_collection('losses'))
+        self.G_optim = gen_optimizer.minimize(self.G_loss, var_list=self.G_var)
+        self.D_optim = disc_optimizer.minimize(self.D_loss, var_list=self.D_var)
+        self.wd_optim = wd_optimizer.minimize(wd_loss)
 
-    D_in = tf.concat([G_z,x], axis=0)
+    elif self.mode == 'photo_to_sketch_GAN_skip_connections':
+        self.x = self.img_loader
+        x = self.x
+        self.y = self.sketch_loader
+        y = self.y
+        self.G_x, self.G_var = self.photo_to_sketch_generator_skip_connections(x, self.batch_size, 
+          is_train = True, reuse = False)
+        D_G_x_in = tf.concat([G_x,x], axis=1) # Concatenates image and sketch along channel axis for generated image
+        D_y_in = tf.concat([y,x], axis=1) # Concatenates image and sketch along channel axis for ground truth image
+        D_in = tf.concat([D_G_x_in, D_y_in], axis=0) # Batching ground truth and generator output as input for discriminator
+        D_out, self.D_var = self.discriminator(D_in, self.batch_size*2,
+            is_train=True, reuse=False)
+        self.D_G_x = D_out[0:self.batch_size]
+        self.D_y = D_out[self.batch_size:]
+        self.G_loss = tf.reduce_mean(tf.abs(self.G_x-y)) # L1 loss
+        D_loss_real = tf.reduce_mean(tf.log(tf.nn.sigmoid(self.D_y)))
+        D_loss_fake = tf.reduce_mean(tf.log(tf.constant([1],dtype=tf.float64) - tf.nn.sigmoid(self.D_G_x)))
+        self.D_loss = D_loss_fake + D_loss_real
+        gen_optimizer = tf.train.AdamOptimizer(self.g_lr, beta1 = 0.5, beta2=0.999)
+        disc_optimizer = tf.train.AdamOptimizer(self.d_lr, beta1 = 0.5, beta2=0.999)
+        for var in tf.trainable_variables():
+            print(var)
+            weight_decay = tf.multiply(tf.nn.l2_loss(var), self.wd_ratio)
+            tf.add_to_collection('losses', weight_decay)
+        wd_loss = tf.add_n(tf.get_collection('losses'))
+        self.G_optim = gen_optimizer.minimize(self.G_loss, var_list=self.G_var)
+        self.D_optim = disc_optimizer.minimize(self.D_loss, var_list=self.D_var)
+        self.wd_optim = wd_optimizer.minimize(wd_loss)
 
-    D_out, self.D_var = self.discriminator(D_in, self.batch_size*2, 
-      is_train=True, reuse=False) 
+    else:
+        print('Wrong mode selected. Choose from available 4 choices.')
 
-    self.D_G_z = D_out[0:self.batch_size]
-    self.D_x = D_out[self.batch_size:]    
-
-    # self.D_G_z, D_var = discriminator(G_z, self.batch_size, 
-    #   is_train=False, reuse=True)
-
-
-
-    D_loss_real = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
-      logits = self.D_x,labels=tf.ones_like(self.D_x)))
-
-    D_loss_fake = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
-      logits = self.D_G_z,labels=tf.zeros_like(self.D_G_z)))
-
-    self.D_loss = D_loss_fake + D_loss_real
-
-    self.G_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
-      logits = self.D_G_z,labels=tf.ones_like(self.D_G_z)))
-    
-
-    wd_optimizer = tf.train.GradientDescentOptimizer(self.lr)
-    gen_optimizer = tf.train.AdamOptimizer(self.lr*10, beta1 = 0.5)
-    disc_optimizer = tf.train.AdamOptimizer(self.lr, beta1 = 0.5)
-
-
-    for var in tf.trainable_variables():
-      weight_decay = tf.multiply(tf.nn.l2_loss(var), self.wd_ratio)
-      tf.add_to_collection('losses', weight_decay)
-    wd_loss = tf.add_n(tf.get_collection('losses'))
-
-    self.G_optim = gen_optimizer.minimize(self.G_loss, var_list=self.G_var)   
-    self.D_optim = disc_optimizer.minimize(self.D_loss, var_list=self.D_var)
-    self.wd_optim = wd_optimizer.minimize(wd_loss)
-
-    # pdb.set_trace()
-
-    D_G_z_mean = tf.reduce_mean(tf.nn.sigmoid(self.D_G_z))
-    D_x_mean = tf.reduce_mean(tf.nn.sigmoid(self.D_x))
 
     self.summary_op = tf.summary.merge([
-      tf.summary.scalar("lr", self.lr),
-      tf.summary.image("gen_image", self.G_z),
-      tf.summary.histogram('input_noise',self.z),
-      tf.summary.image("train_image", self.x),
+      tf.summary.scalar("g_lr", self.g_lr),
+      tf.summary.scalar("d_lr", self.d_lr),
+      tf.summary.image("gen_image", self.G_x),
+      tf.summary.image('train_image',self.x),
       tf.summary.scalar("G_loss", self.G_loss),
-      tf.summary.scalar('D_loss', self.D_loss),
-      tf.summary.scalar('D_G_z', D_G_z_mean),
-      tf.summary.scalar('D_x', D_x_mean)
-
+      tf.summary.scalar('D_loss', self.D_loss)
     ])
 
   def build_gen_eval_model(self):
@@ -173,7 +231,8 @@ class Trainer(object):
 
       if step % self.log_step == self.log_step - 1:
         fetch_dict_gen.update({
-          'lr': self.lr,
+          'g_lr': self.g_lr,
+          'd_lr': self.d_lr,
           'summary': self.summary_op })
 
       if (step > 2000 and step <= 3000 and D_loss < 0.1) or step < 10:
