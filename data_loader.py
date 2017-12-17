@@ -2,6 +2,7 @@ import os
 import numpy as np
 import tensorflow as tf
 import pdb
+import glob
 
 def read_labeled_image_list(img_dir):
   """Reads a .txt file containing pathes and labeles
@@ -10,15 +11,13 @@ def read_labeled_image_list(img_dir):
   Returns:
     List with all filenames
   """
-  files = os.listdir(img_dir)
+  files = glob.glob(img_dir+'/*.jpg')
   img_paths = []
   for file in files:
-    if file[-4:] == '.png':
-      img_paths.append(img_dir + file)
-
+    img_paths.append(img_dir + file)
   return img_paths
 
-def read_images_from_disk(input_queue):
+def read_images_from_disk(input_queue, num_channels):
   """Consumes a single filename and label as a ' '-delimited string
   Args:
     filename_and_label_tensor: A scalar string tensor
@@ -26,10 +25,10 @@ def read_images_from_disk(input_queue):
     Two tensors: the decoded image, and the string label
   """
   img_path = tf.read_file(input_queue)
-  img = tf.image.decode_png(img_path, channels=1)
+  img = tf.image.decode_png(img_path, channels=num_channels)
   return img
 
-def get_loader(root, batch_size, shuffle=True):
+def get_loader(root, batch_size, img_type='photos', split='train', shuffle=True):
   """ Get a data loader for tensorflow computation graph
   Args:
     root: Path/to/dataset/root/, a string
@@ -39,7 +38,14 @@ def get_loader(root, batch_size, shuffle=True):
     img_batch: A (float) tensor containing a batch of images.
     lab_batch: A (int) tensor containing a batch of labels.
   """
-  img_paths_np = read_labeled_image_list(root+'/imgs/')
+  img_paths_np = read_labeled_image_list(root+split+'/'+img_type)
+  if img_type == 'photos':
+  	num_channels = 3
+  elif img_type == 'sketches':
+  	num_channels = 1
+  else:
+  	print ('Unknown input image. Assuming 3 channel image.')
+  	num_channels = 3
 
   with tf.device('/cpu:0'):
     img_paths = tf.convert_to_tensor(img_paths_np, dtype=tf.string)
@@ -47,13 +53,13 @@ def get_loader(root, batch_size, shuffle=True):
     input_queue = tf.train.slice_input_producer([img_paths], shuffle=shuffle, 
       capacity=10*batch_size)
 
-    img = read_images_from_disk(input_queue[0])
+    img = read_images_from_disk(input_queue[0], num_channels)
 
-    img.set_shape([64, 64, 1])
+    img.set_shape([200, 250, num_channels])
     img = tf.cast(img, tf.float32)
 
     img = img / 127.5 - 1#tf.image.per_image_standardization(img)
 
-    img_batch= tf.train.batch([img], num_threads=1, batch_size=batch_size, capacity=10*batch_size)
+    img_batch = tf.train.batch([img], num_threads=1, batch_size=batch_size, capacity=10*batch_size)
 
   return img_batch
