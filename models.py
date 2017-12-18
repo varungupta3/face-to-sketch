@@ -1,6 +1,7 @@
 import tensorflow as tf
 from layers import *
 import pdb
+from tensorflow.python.layers import convolutional as convolutional_layers
 
 def photo_to_sketch_generator(x, batch_size, is_train, reuse):
 
@@ -44,37 +45,74 @@ def photo_to_sketch_generator(x, batch_size, is_train, reuse):
     with tf.variable_scope('Decoder', reuse=reuse) as vs_dec:
       with tf.variable_scope('deconv1', reuse=reuse):
         out_channels = hidden_num
-        x = t_conv_factory(x, hidden_num, [batch_size,8,7,out_channels], 3, 1, is_train, reuse)
+        layer = convolutional_layers.Convolution2DTranspose(
+          filters=out_channels,
+          kernel_size=2,
+          strides=2,
+          padding='VALID')
+        x = layer.apply(x)
+        # x = t_conv_factory_noact(x, hidden_num, [batch_size,8,7,out_channels], 3, 1, is_train, reuse)
         print (x.shape)
 
       with tf.variable_scope('deconv2', reuse=reuse):
         hidden_num /= 2
         out_channels = hidden_num
-        x = t_conv_factory(x, hidden_num, [batch_size,16,13,out_channels], 3, 1, is_train, reuse)
+        layer = convolutional_layers.Convolution2DTranspose(
+          filters=out_channels,
+          kernel_size=2,
+          strides=2,
+          padding='VALID',
+          )
+        x = layer.apply(x)
+        # x = t_conv_factory(x, hidden_num, [batch_size,16,13,out_channels], 3, 1, is_train, reuse)
         print (x.shape)
 
       with tf.variable_scope('deconv3', reuse=reuse):
         hidden_num /= 2
         out_channels = hidden_num
-        x = t_conv_factory(x, hidden_num, [batch_size,32,25,out_channels], 3, 1, is_train, reuse)
+        layer = convolutional_layers.Convolution2DTranspose(
+          filters=out_channels,
+          kernel_size=2,
+          strides=2,
+          padding='VALID')
+        x = layer.apply(x)
+        # x = t_conv_factory(x, hidden_num, [batch_size,32,25,out_channels], 3, 1, is_train, reuse)
         print (x.shape)
 
       with tf.variable_scope('deconv4', reuse=reuse):
         hidden_num /= 2
         out_channels = hidden_num
-        x = t_conv_factory(x, hidden_num, [batch_size,63,50,out_channels], 3, 1, is_train, reuse)
+        layer = convolutional_layers.Convolution2DTranspose(
+          filters=out_channels,
+          kernel_size=2,
+          strides=2,
+          padding='VALID')
+        x = layer.apply(x)
+        # x = t_conv_factory(x, hidden_num, [batch_size,63,50,out_channels], 3, 1, is_train, reuse)
         print (x.shape)
 
       with tf.variable_scope('deconv5', reuse=reuse):
         hidden_num /= 2
         out_channels = hidden_num
-        x = t_conv_factory(x, hidden_num, [batch_size,125,100,out_channels], 3, 1, is_train, reuse)
+        layer = convolutional_layers.Convolution2DTranspose(
+          filters=out_channels,
+          kernel_size=2,
+          strides=2,
+          padding='VALID')
+        x = layer.apply(x)
+        # x = t_conv_factory(x, hidden_num, [batch_size,125,100,out_channels], 3, 1, is_train, reuse)
         print (x.shape)
 
       with tf.variable_scope('deconv6', reuse=reuse):
         hidden_num = 1
         out_channels = hidden_num
-        x = t_conv_factory_noact(x, hidden_num, [batch_size,250,200,out_channels], 3, 1, is_train, reuse)
+        layer = convolutional_layers.Convolution2DTranspose(
+          filters=out_channels,
+          kernel_size=2,
+          strides=2,
+          padding='VALID')
+        x = layer.apply(x)
+        # x = t_conv_factory_noact(x, hidden_num, [batch_size,250,200,out_channels], 3, 1, is_train, reuse)
         print (x.shape)
 
 
