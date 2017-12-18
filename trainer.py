@@ -239,6 +239,14 @@ class Trainer(object):
 
       self.G_loss_test = tf.reduce_mean(tf.abs(self.G_x_test-test_y)) # L1 loss
 
+      self.summary_op_test = tf.summary.merge([
+        tf.summary.image("gen_test_sketch", self.G_x_test),
+        tf.summary.image('test_image',self.test_x),
+        tf.summary.image('test_sketch',self.test_y),
+        tf.summary.scalar("G_loss", self.G_loss_test)
+        ])
+
+
 
   def train(self):
     for step in trange(self.start_step, self.max_step):
@@ -296,7 +304,8 @@ class Trainer(object):
             'x': self.test_x,
             'y': self.test_y,
             'G_loss': self.G_loss_test,
-            'G_x': self.G_x_test}
+            'G_x': self.G_x_test,
+            'summary_test': self.summary_op_test}
 
           result_test = self.sess.run(fetch_dict_gen)
           G_loss_test += result_test['G_loss']
@@ -305,6 +314,8 @@ class Trainer(object):
 
         print ('\ntest_loss = %.4f'%(G_loss_test))
 
+        self.summary_writer.add_summary(result_test['summary_test'], step)
+        self.summary_writer.flush()
 
       if step % self.epoch_step == self.epoch_step - 1:
         self.sess.run([self.g_lr_update])
