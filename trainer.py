@@ -222,7 +222,7 @@ class Trainer(object):
   def train(self):
     flag = False
     for step in trange(self.start_step, self.max_step):
-      print (step)
+      #print (step)
       # z = np.random.uniform(-1.0,1.0,
       #   size=[self.batch_size,100]).astype(np.float32)
 
@@ -259,7 +259,7 @@ class Trainer(object):
       result = self.sess.run(fetch_dict_gen)
       G_loss = result['G_loss']
       G_x = result['G_x']
-      pdb.set_trace()
+      #pdb.set_trace()
 
       # if (step > 2000 and step <= 3000 and D_loss < 0.1) or step < 10:
         # result = self.sess.run(fetch_dict_gen)#, feed_dict =feed_dict )
@@ -283,7 +283,8 @@ class Trainer(object):
       #   result = self.sess.run(fetch_dict_gen)#, feed_dict =feed_dict )
       #   G_loss = result['G_loss']
 
-
+      print("\n[{}/{}] Gen_Loss: {:.6f} " . \
+          format(step, self.max_step, G_loss))
       # D_x = result['D_x']
       # D_G_z = result['D_G_z']
       # G_z = result['G_z']
@@ -291,7 +292,7 @@ class Trainer(object):
       if step % self.log_step == self.log_step - 1:
         self.summary_writer.add_summary(result['summary'], step)
         self.summary_writer.flush()
-        pdb.set_trace()
+        #pdb.set_trace()
 
         # if D_loss < 0.2:
         #   flag = True
@@ -315,9 +316,9 @@ class Trainer(object):
         # plt.savefig(self.config.model_dir + '/gen_out_iter_iter_%d'%(step) +'.png' )
         # plt.close('all')
 
-        g_lr = result['g_lr']
-        print("\n[{}/{}:{:.6f}] Gen_Loss: {:.6f} " . \
-              format(step, self.max_step, g_lr, G_loss))
+        #g_lr = result['g_lr']
+        print("\n[{}/{}] Gen_Loss: {:.6f} " . \
+              format(step, self.max_step, G_loss))
 
 
         # print("\n[{}/{}:{:.6f}] Gen_Loss: {:.6f} Disc_Loss: {:.6f}" . \
