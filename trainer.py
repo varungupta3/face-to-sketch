@@ -124,7 +124,6 @@ class Trainer(object):
           is_train = True, reuse = False)
 
         G_x = self.G_x
-        pdb.set_trace()
         D_G_x_in = tf.concat([G_x,x], axis=3) # Concatenates image and sketch along channel axis for generated image
         D_y_in = tf.concat([y,x], axis=3) # Concatenates image and sketch along channel axis for ground truth image
         D_in = tf.concat([D_G_x_in, D_y_in], axis=0) # Batching ground truth and generator output as input for discriminator
@@ -132,15 +131,15 @@ class Trainer(object):
             is_train=True, reuse=False)
         self.D_G_x = D_out[0:self.batch_size]
         self.D_y = D_out[self.batch_size:]
-        self.G_loss = tf.reduce_mean(tf.abs(self.G_x-y)) # L1 loss
         D_loss_real = tf.reduce_mean(tf.log(self.D_y))
         D_loss_fake = tf.reduce_mean(tf.log(tf.constant([1],dtype=tf.float32) - self.D_G_x))
         self.D_loss = D_loss_fake + D_loss_real
+        self.G_loss = tf.reduce_mean(tf.abs(self.G_x-y))*0.5 - self.D_loss # L1 loss
+
         gen_optimizer = tf.train.AdamOptimizer(self.g_lr, beta1 = 0.5, beta2=0.999)
         disc_optimizer = tf.train.AdamOptimizer(self.d_lr, beta1 = 0.5, beta2=0.999)
         wd_optimizer = tf.train.GradientDescentOptimizer(self.g_lr)
         for var in tf.trainable_variables():
-            print(var)
             weight_decay = tf.multiply(tf.nn.l2_loss(var), self.wd_ratio)
             tf.add_to_collection('losses', weight_decay)
         wd_loss = tf.add_n(tf.get_collection('losses'))
@@ -245,94 +244,225 @@ class Trainer(object):
         tf.summary.image('test_sketch',self.test_y),
         tf.summary.scalar("G_loss", self.G_loss_test)
         ])
+    elif self.mode == 'photo_to_sketch_GAN':
+      self.test_x = self.img_loader_test
+      test_x = self.test_x
+      self.test_y = self.sketch_loader_test
+      test_y = self.test_y
+
+      self.G_x_test, G_var = self.generator(test_x, self.batch_size_eval, 
+        is_train = False, reuse = True)
+
+      G_x_test = self.G_x_test
+
+      D_G_x_in = tf.concat([G_x_test,test_x], axis=3) # Concatenates image and sketch along channel axis for generated image
+      D_y_in = tf.concat([test_y,test_x], axis=3) # Concatenates image and sketch along channel axis for ground truth image
+
+      self.D_G_x_test, D_Var = self.discriminator(D_G_x_in, self.batch_size_eval, 
+        is_train = False, reuse = True)
+
+      self.D_y_test, D_Var = self.discriminator(D_y_in, self.batch_size_eval, 
+        is_train = False, reuse = True)
+
+      D_loss_real = tf.reduce_mean(tf.log(self.D_y_test))
+      D_loss_fake = tf.reduce_mean(tf.log(tf.constant([1],dtype=tf.float32) - self.D_G_x_test))
+      self.D_loss_test = D_loss_fake + D_loss_real
+      self.G_loss_test = tf.reduce_mean(tf.abs(self.G_x_test-test_y))*0.5 - self.D_loss_test # L1 loss
+      self.G_loss_test_L1 = tf.reduce_mean(tf.abs(self.G_x_test-test_y)) # L1 loss
+
+      self.summary_op_test = tf.summary.merge([
+        tf.summary.image("gen_test_sketch", self.G_x_test),
+        tf.summary.image('test_image',self.test_x),
+        tf.summary.image('test_sketch',self.test_y),
+        tf.summary.scalar("G_loss", self.G_loss_test),
+        tf.summary.scalar("G_loss_L1", self.G_loss_test_L1),
+        tf.summary.image("D_G_x_test", self.D_G_x_test),
+        tf.summary.image("D_y_test", self.D_y_test),
+        tf.summary.scalar("D_loss_test", self.D_loss_test)
+        ])
 
 
 
   def train(self):
     for step in trange(self.start_step, self.max_step):
+      if self.config.mode == 'photo_to_sketch_generator':
+        fetch_dict_gen = {
+          'gen_optim': self.G_optim,
+          'x': self.x,
+          'y': self.y,
+          'G_loss': self.G_loss,
+          'G_x': self.G_x}
+
+        # fetch_dict_disc = {
+        #   'disc_optim': self.D_optim,
+        #   # 'wd_optim': self.wd_optim,
+        #   'D_loss': self.D_loss,
+        #   # 'D_x': self.D_x,
+        #   # 'G_loss': self.G_loss,
+        #   # 'D_G_z':self.D_G_z,
+        #   # 'G_z': self.G_z
+        #   }
+
+        if step % self.log_step == self.log_step - 1:
+          fetch_dict_gen.update({
+            'g_lr': self.g_lr,
+            # 'd_lr': self.d_lr,
+            'summary': self.summary_op })
+
+        result = self.sess.run(fetch_dict_gen)
+        G_loss = result['G_loss']
+        G_x = result['G_x']
+
+        # print("\n[{}/{}] Gen_Loss: {:.6f} " . \
+        #     format(step, self.max_step, G_loss))
+        # D_x = result['D_x']
+        # D_G_z = result['D_G_z']
+        # G_z = result['G_z']
+
+        if step % self.log_step == self.log_step - 1:
+          self.summary_writer.add_summary(result['summary'], step)
+          self.summary_writer.flush()
+          #pdb.set_trace()
+
+          g_lr = result['g_lr']
+          print("\n[{}/{}] Gen_Loss: {:.6f} " . \
+                format(step, self.max_step, G_loss))
+
+          sys.stdout.flush()
+
+        if step % self.save_step == self.save_step - 1:
+          self.saver.save(self.sess, self.model_dir + '/model')
+
+          G_loss_test = 0
+          for i in range(100):
+            fetch_dict_gen = {
+              'x': self.test_x,
+              'y': self.test_y,
+              'G_loss': self.G_loss_test,
+              'G_x': self.G_x_test,
+              'summary_test': self.summary_op_test}
+
+            result_test = self.sess.run(fetch_dict_gen)
+            G_loss_test += result_test['G_loss']
+
+          G_loss_test /= 100
+
+          print ('\ntest_loss = %.4f'%(G_loss_test))
+
+          self.summary_writer.add_summary(result_test['summary_test'], step)
+          self.summary_writer.flush()
+
+        if step % self.epoch_step == self.epoch_step - 1:
+          self.sess.run([self.g_lr_update])
+          self.sess.run([self.d_lr_update])
       
-      fetch_dict_gen = {
-      'gen_optim': self.G_optim,
-      'x': self.x,
-      'y': self.y,
-      'G_loss': self.G_loss,
-      'G_x': self.G_x}
+      elif self.config.mode == 'photo_to_sketch_GAN':
+        fetch_dict_gen = {
+          'gen_optim': self.G_optim,
+          'x': self.x,
+          'y': self.y,
+          'G_loss': self.G_loss,
+          'G_x': self.G_x}
 
-      # fetch_dict_disc = {
-      #   'disc_optim': self.D_optim,
-      #   # 'wd_optim': self.wd_optim,
-      #   'D_loss': self.D_loss,
-      #   # 'D_x': self.D_x,
-      #   # 'G_loss': self.G_loss,
-      #   # 'D_G_z':self.D_G_z,
-      #   # 'G_z': self.G_z
-      #   }
+        fetch_dict_disc = {
+          'disc_optim': self.D_optim,
+          # 'wd_optim': self.wd_optim,
+          'D_loss': self.D_loss,
+          'D_y': self.D_y,
+          'G_loss': self.G_loss,
+          'D_G_x':self.D_G_x,
+          'G_x': self.G_x
+          }
 
-      if step % self.log_step == self.log_step - 1:
-        fetch_dict_gen.update({
-          'g_lr': self.g_lr,
-          # 'd_lr': self.d_lr,
-          'summary': self.summary_op })
+        if step % self.log_step == self.log_step - 1:
+          fetch_dict_disc.update({
+            'g_lr': self.g_lr,
+            'd_lr': self.d_lr,
+            'summary': self.summary_op })
 
-      result = self.sess.run(fetch_dict_gen)
-      G_loss = result['G_loss']
-      G_x = result['G_x']
+        result = self.sess.run(fetch_dict_gen)
+        G_loss = result['G_loss']
+        x = result['x']
+        y = result['y']
+        G_x = result['G_x']
 
-      # print("\n[{}/{}] Gen_Loss: {:.6f} " . \
-      #     format(step, self.max_step, G_loss))
-      # D_x = result['D_x']
-      # D_G_z = result['D_G_z']
-      # G_z = result['G_z']
+        result = self.sess.run(fetch_dict_disc)
+        result = self.sess.run(fetch_dict_disc)
+        D_y = result['D_y']
+        D_G_x = result['D_G_x']
+        G_x = result['G_x']
+        D_loss = result['D_loss']
 
-      if step % self.log_step == self.log_step - 1:
-        self.summary_writer.add_summary(result['summary'], step)
-        self.summary_writer.flush()
-        #pdb.set_trace()
 
-        g_lr = result['g_lr']
-        print("\n[{}/{}] Gen_Loss: {:.6f} " . \
-              format(step, self.max_step, G_loss))
 
-        sys.stdout.flush()
+        if step % self.log_step == self.log_step - 1:
+          self.summary_writer.add_summary(result['summary'], step)
+          self.summary_writer.flush()
+          #pdb.set_trace()
 
-      if step % self.save_step == self.save_step - 1:
-        self.saver.save(self.sess, self.model_dir + '/model')
+          g_lr = result['g_lr']
+          print("\n[{}/{}] Gen_Loss: {:.6f} Disc_Loss: {:.6f} " . \
+                format(step, self.max_step, G_loss, D_loss))
 
-        G_loss_test = 0
-        for i in range(100):
-          fetch_dict_gen = {
-            'x': self.test_x,
-            'y': self.test_y,
-            'G_loss': self.G_loss_test,
-            'G_x': self.G_x_test,
-            'summary_test': self.summary_op_test}
+          sys.stdout.flush()
 
-          result_test = self.sess.run(fetch_dict_gen)
-          G_loss_test += result_test['G_loss']
+        if step % self.save_step == self.save_step - 1:
+          self.saver.save(self.sess, self.model_dir + '/model')
 
-        G_loss_test /= 100
+          G_loss_test = 0
+          for i in range(100):
+            fetch_dict_gen = {
+              'x': self.test_x,
+              'y': self.test_y,
+              'G_loss_L1': self.G_loss_test_L1,
+              'G_x': self.G_x_test,
+              'D_g_x': self.D_G_x_test,
+              'summary_test': self.summary_op_test}
 
-        print ('\ntest_loss = %.4f'%(G_loss_test))
+            result_test = self.sess.run(fetch_dict_gen)
+            G_loss_test += result_test['G_loss_L1']
 
-        self.summary_writer.add_summary(result_test['summary_test'], step)
-        self.summary_writer.flush()
+          G_loss_test /= 100
 
-      if step % self.epoch_step == self.epoch_step - 1:
-        self.sess.run([self.g_lr_update])
-        self.sess.run([self.d_lr_update])
+          print ('\nG_test_loss_L1 = %.4f'%(G_loss_test))
+
+          self.summary_writer.add_summary(result_test['summary_test'], step)
+          self.summary_writer.flush()
+
+        if step % self.epoch_step == self.epoch_step - 1:
+          self.sess.run([self.g_lr_update])
+          self.sess.run([self.d_lr_update])
 
   def test(self):
     self.saver.restore(self.sess, self.model_dir + '/model.ckpt-0')
-    G_loss = 0
-    for i in range(100):
-      fetch_dict_gen = {
-        'x': self.test_x,
-        'y': self.test_y,
-        'G_loss': self.G_loss_test,
-        'G_x': self.G_x_test}
 
-      result = self.sess.run(fetch_dict_gen)
+    if self.config.mode == 'photo_to_sketch_generator':
+      G_loss = 0
+      for i in range(100):
+        fetch_dict_gen = {
+          'x': self.test_x,
+          'y': self.test_y,
+          'G_loss': self.G_loss_test,
+          'G_x': self.G_x_test}
 
-      G_loss += result['G_loss']
+        result = self.sess.run(fetch_dict_gen)
 
-    G_loss /= 100
+        G_loss += result['G_loss']
+
+      G_loss /= 100
+
+    elif self.config.mode == 'photo_to_sketch_GAN':
+      G_loss = 0
+      for i in range(100):
+        fetch_dict_gen = {
+          'x': self.test_x,
+          'y': self.test_y,
+          'G_loss': self.G_loss_test,
+          'G_x': self.G_x_test}
+
+        result = self.sess.run(fetch_dict_gen)
+
+        G_loss += result['G_loss']
+
+      G_loss /= 100
+
