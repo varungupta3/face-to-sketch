@@ -5,7 +5,7 @@ import os
 import numpy as np
 from tqdm import trange
 import matplotlib
-matplotlib.use('agg')
+# matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import matplotlib.pyplot as plt
 from models import *
@@ -198,10 +198,10 @@ class Trainer(object):
     self.summary_op = tf.summary.merge([
       tf.summary.scalar("g_lr", self.g_lr),
       tf.summary.scalar("d_lr", self.d_lr),
-      # tf.summary.image("gen_image", self.G_x),
-      # tf.summary.image('train_image',self.x),
-      # tf.summary.scalar("G_loss", self.G_loss),
-      # tf.summary.scalar('D_loss', self.D_loss)
+      tf.summary.image("gen_image", self.G_x),
+      tf.summary.image('train_image',self.x),
+      tf.summary.scalar("G_loss", self.G_loss),
+      tf.summary.scalar('D_loss', self.D_loss)
     ])
 
   # def build_gen_eval_model(self):
@@ -227,15 +227,15 @@ class Trainer(object):
       # feed_dict = {self.z : z}
 
       fetch_dict_gen = {
-        # 'gen_optim': self.G_optim,
+        'gen_optim': self.G_optim,
         # 'wd_optim': self.wd_optim,
         'x': self.x,
         'y': self.y,
-        # 'G_loss': self.G_loss,
+        'G_loss': self.G_loss,
         # 'D_x': self.D_x,
         # 'D_loss': self.D_loss,
         # 'D_G_x':self.D_G_x,
-        # 'G_x': self.G_x
+        'G_x': self.G_x
         }
 
       # fetch_dict_disc = {
@@ -255,10 +255,9 @@ class Trainer(object):
       #     'summary': self.summary_op })
 
       result = self.sess.run(fetch_dict_gen)
+      G_loss = result['G_loss']
+      G_x = result['G_x']
       pdb.set_trace()
-      # G_loss = result['G_loss']
-      # G_x = result['G_x']
-      # pdb.set_trace()
 
       # if (step > 2000 and step <= 3000 and D_loss < 0.1) or step < 10:
         # result = self.sess.run(fetch_dict_gen)#, feed_dict =feed_dict )
@@ -290,6 +289,7 @@ class Trainer(object):
       if step % self.log_step == self.log_step - 1:
         self.summary_writer.add_summary(result['summary'], step)
         self.summary_writer.flush()
+        pdb.set_trace()
 
         # if D_loss < 0.2:
         #   flag = True

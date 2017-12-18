@@ -14,7 +14,7 @@ def read_labeled_image_list(img_dir):
   files = glob.glob(img_dir+'/*.jpg')
   img_paths = []
   for file in files:
-    img_paths.append(img_dir + file)
+    img_paths.append(file)
   return img_paths
 
 def read_images_from_disk(input_queue, num_channels):
@@ -40,7 +40,6 @@ def get_loader(root, batch_size, img_type='photos', split='train', shuffle=True)
   """
 
   img_paths_np = read_labeled_image_list(root+'/'+split+'/'+img_type)
-  print (img_paths_np)
   if img_type == 'photos':
   	num_channels = 3
   elif img_type == 'sketches':
@@ -48,7 +47,7 @@ def get_loader(root, batch_size, img_type='photos', split='train', shuffle=True)
   else:
   	print ('Unknown input image. Assuming 3 channel images.')
   	num_channels = 3
-  pdb.set_trace()
+  	
   with tf.device('/cpu:0'):
     img_paths = tf.convert_to_tensor(img_paths_np, dtype=tf.string)
 
@@ -57,7 +56,7 @@ def get_loader(root, batch_size, img_type='photos', split='train', shuffle=True)
 
     img = read_images_from_disk(input_queue[0], num_channels)
 
-    img.set_shape([200, 250, num_channels])
+    img.set_shape([250, 200, num_channels])
     img = tf.cast(img, tf.float32)
 
     # img = img / 127.5 - 1#tf.image.per_image_standardization(img)

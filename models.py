@@ -48,37 +48,37 @@ def photo_to_sketch_generator(x, batch_size, is_train, reuse):
     with tf.variable_scope('Decoder', reuse=reuse) as vs_dec:
       with tf.variable_scope('deconv1', reuse=reuse):
         out_channels = hidden_num
-        x = t_conv_factory_leaky(x, hidden_num, [batch_size,7,8,out_channels], 3, 1, is_train, reuse)
+        x = t_conv_factory_leaky(x, hidden_num, [batch_size,8,7,out_channels], 3, 1, is_train, reuse)
         print (x.shape)
 
       with tf.variable_scope('deconv2', reuse=reuse):
         # hidden_num /= 2
         out_channels = hidden_num
-        x = t_conv_factory_leaky(x, hidden_num, [batch_size,13,16,out_channels], 3, 1, is_train, reuse)
+        x = t_conv_factory_leaky(x, hidden_num, [batch_size,16,13,out_channels], 3, 1, is_train, reuse)
         print (x.shape)
 
       with tf.variable_scope('deconv3', reuse=reuse):
         hidden_num /= 2
         out_channels = hidden_num
-        x = t_conv_factory_leaky(x, hidden_num, [batch_size,25,32,out_channels], 3, 1, is_train, reuse)
+        x = t_conv_factory_leaky(x, hidden_num, [batch_size,32,25,out_channels], 3, 1, is_train, reuse)
         print (x.shape)
 
       with tf.variable_scope('deconv4', reuse=reuse):
         hidden_num /= 2
         out_channels = hidden_num
-        x = t_conv_factory_leaky(x, hidden_num, [batch_size,50,63,out_channels], 3, 1, is_train, reuse)
+        x = t_conv_factory_leaky(x, hidden_num, [batch_size,63,50,out_channels], 3, 1, is_train, reuse)
         print (x.shape)
 
       with tf.variable_scope('deconv5', reuse=reuse):
         hidden_num /= 2
         out_channels = hidden_num
-        x = t_conv_factory_leaky(x, hidden_num, [batch_size,100,125,out_channels], 3, 1, is_train, reuse)
+        x = t_conv_factory_leaky(x, hidden_num, [batch_size,125,100,out_channels], 3, 1, is_train, reuse)
         print (x.shape)
 
       with tf.variable_scope('deconv6', reuse=reuse):
         hidden_num = 1
         out_channels = hidden_num
-        x = t_conv_factory_leaky(x, hidden_num, [batch_size,200,250,out_channels], 3, 1, is_train, reuse)
+        x = t_conv_factory_leaky(x, hidden_num, [batch_size,250,200,out_channels], 3, 1, is_train, reuse)
         print (x.shape)
 
 
