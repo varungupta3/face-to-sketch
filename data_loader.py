@@ -4,18 +4,35 @@ import tensorflow as tf
 import pdb
 import glob
 
-def read_labeled_image_list(img_dir):
+def read_labeled_image_list(img_dir, split):
   """Reads a .txt file containing pathes and labeles
   Args:
     img_dir: path of directory that contains images
   Returns:
     List with all filenames
   """
-  files = glob.glob(img_dir+'/*.jpg')
+  f = open(img_dir + '/'+ 'train' + '.csv', 'r')
   img_paths = []
-  for file in files:
-    img_paths.append(file)
-  return img_paths
+  sketch_paths = []
+  for line in f:
+    img_name, sketch_name = line.split(', ')
+    sketch_name = sketch_name.split('\r')[0]
+    img_paths.append(img_dir + '/'+ 'train' + '/photos/' + img_name)
+    sketch_paths.append(img_dir + '/'+ 'train' + '/sketches/' + sketch_name)
+  pdb.set_trace()
+  # img_files = glob.glob(img_dir+'photos'+'/*.jpg')
+  # sketch_files = glob.glob(img_dir+'sketches'+'/*.jpg')
+  # pdb.set_trace()
+  # f_sketch = [file for file in sketch_files if file.split('/')[-1][0]=='F']
+  # f_img = [file for file in img_files if file.split('/')[-1][0]=='f']
+  # idx_img_files = [int(file.split('-')[1]) for file in img_files]
+  # idx_sketch_files = [int(file.split('-')[1]) for file in sketch_files]
+  # img_paths = []
+  # sketch_paths = []
+  # for file in img_files:
+  #   img_paths.append(file)
+  # pdb.set_trace()
+  return img_paths, sketch_paths
 
 def read_images_from_disk(input_queue):
   """Consumes a single filename and label as a ' '-delimited string
@@ -41,8 +58,7 @@ def get_loader(root, batch_size, split='train', shuffle=True):
     lab_batch: A (int) tensor containing a batch of labels.
   """
 
-  img_paths_np = read_labeled_image_list(root+'/'+split+'/'+'photos')
-  sketch_paths_np = read_labeled_image_list(root+'/'+split+'/'+'sketches')
+  img_paths_np, sketch_paths_np = read_labeled_image_list(root,split)
   	
   with tf.device('/cpu:0'):
     img_paths = tf.convert_to_tensor(img_paths_np, dtype=tf.string)
