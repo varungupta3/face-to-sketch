@@ -20,26 +20,26 @@ data_arg = add_argument_group('Data')
 data_arg.add_argument('--dataset', type=str, default='cufs_photos', choices=['cufs_photos'])
 data_arg.add_argument('--batch_size', type=int, default=10)
 data_arg.add_argument('--batch_size_eval', type=int, default=10)
-data_arg.add_argument('--mode', type=str, default='photo_to_sketch_GAN', choices=['photo_to_sketch_generator',
+data_arg.add_argument('--mode', type=str, default='photo_to_sketch_generator', choices=['photo_to_sketch_generator',
 	'photo_to_sketch_GAN', 'sketch_to_photo_GAN', 'photo_to_sketch_GAN_UNET'])
 
 # Training / test parameters
 train_arg = add_argument_group('Training')
 train_arg.add_argument('--is_train', type=str2bool, default=True)
-train_arg.add_argument('--max_step', type=int, default=1500)
+train_arg.add_argument('--max_step', type=int, default=15000)
 train_arg.add_argument('--epoch_step', type=int, default=100)
-train_arg.add_argument('--g_lr', type=float, default=1e-3)
+train_arg.add_argument('--g_lr', type=float, default=1e-4)
 train_arg.add_argument('--d_lr', type=float, default=1e-4)
-train_arg.add_argument('--g_min_lr', type=float, default=1e-4)
+train_arg.add_argument('--g_min_lr', type=float, default=1e-5)
 train_arg.add_argument('--d_min_lr', type=float, default=1e-5)
 train_arg.add_argument('--wd_ratio', type=float, default=5e-2)
 train_arg.add_argument('--use_gpu', type=str2bool, default=True)
 
 # Misc
 misc_arg = add_argument_group('Misc')
-misc_arg.add_argument('--load_path', type=str, default='')
+misc_arg.add_argument('--load_path', type=str, default='logs/pts_gen_v1')
 misc_arg.add_argument('--log_step', type=int, default=100)
-misc_arg.add_argument('--save_step', type=int, default=1500)
+misc_arg.add_argument('--save_step', type=int, default=1000)
 misc_arg.add_argument('--log_level', type=str, default='INFO', choices=['INFO', 'DEBUG', 'WARN'])
 misc_arg.add_argument('--log_dir', type=str, default='logs')
 misc_arg.add_argument('--data_dir', type=str, default='/home/mhasek/Documents/CIS680/datasets/')

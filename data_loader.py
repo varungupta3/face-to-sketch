@@ -59,7 +59,7 @@ def get_loader(root, batch_size, img_type='photos', split='train', shuffle=True)
     img.set_shape([250, 200, num_channels])
     img = tf.cast(img, tf.float32)
 
-    # img = img / 127.5 - 1#tf.image.per_image_standardization(img)
+    img = tf.image.per_image_standardization(img)
 
     img_batch = tf.train.batch([img], num_threads=1, batch_size=batch_size, capacity=10*batch_size)
 

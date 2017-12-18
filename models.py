@@ -74,7 +74,7 @@ def photo_to_sketch_generator(x, batch_size, is_train, reuse):
       with tf.variable_scope('deconv6', reuse=reuse):
         hidden_num = 1
         out_channels = hidden_num
-        x = t_conv_factory(x, hidden_num, [batch_size,250,200,out_channels], 3, 1, is_train, reuse)
+        x = t_conv_factory_noact(x, hidden_num, [batch_size,250,200,out_channels], 3, 1, is_train, reuse)
         print (x.shape)
 
 
