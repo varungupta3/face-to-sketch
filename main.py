@@ -14,25 +14,15 @@ def main(config):
   rng = np.random.RandomState(config.random_seed)
   tf.set_random_seed(config.random_seed)
 
-  train_img_loader = get_loader(
-    config.data_path, config.batch_size, img_type='photos', split='train', shuffle=True)
+  train_img_loader, train_sketch_loader = get_loader(
+    config.data_path, config.batch_size, split='train', shuffle=True)
 
-  print('Training images loaded!')
+  print('Training data loaded!')
 
-  train_sketch_loader = get_loader(
-    config.data_path, config.batch_size, img_type='sketches', split='train', shuffle=True)
+  test_img_loader, test_sketch_loader = get_loader(
+    config.data_path, config.batch_size, split='test', shuffle=True)
 
-  print('Training sketches loaded!')
-
-  test_img_loader = get_loader(
-    config.data_path, config.batch_size, img_type='photos', split='test', shuffle=True)
-
-  print('Testing images loaded!')
-
-  test_sketch_loader = get_loader(
-    config.data_path, config.batch_size, img_type='sketches', split='test', shuffle=True)
-
-  print('Testing sketches loaded!')
+  print('Testing data loaded!')
 
   trainer = Trainer(config, train_img_loader, train_sketch_loader, test_img_loader, test_sketch_loader)
   if config.is_train:

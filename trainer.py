@@ -10,8 +10,6 @@ import matplotlib.pyplot as plt
 import matplotlib.pyplot as plt
 from models import *
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-
 class Trainer(object):
   def __init__(self, config, img_loader, sketch_loader, img_loader_test, sketch_loader_test):
     self.config = config
@@ -103,8 +101,6 @@ class Trainer(object):
         wd_loss = tf.add_n(tf.get_collection('losses'))
         self.G_optim = gen_optimizer.minimize(self.G_loss, var_list=self.G_var)
         self.wd_optim = wd_optimizer.minimize(wd_loss)
-        with tf.variable_scope("GEN/Encoder/dropout", reuse=True):
-          self.dropout_layer = tf.get_variable("weights")
 
 
         self.summary_op = tf.summary.merge([
@@ -159,7 +155,6 @@ class Trainer(object):
             tf.summary.scalar('D_loss', self.D_loss),
             tf.summary.image('D_G_x', self.D_G_x),
             tf.summary.image('D_y', self.D_y),
-            tf.summary.image('dropout_layer', self.dropout_layer)
             ])
 
 
