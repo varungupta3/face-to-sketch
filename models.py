@@ -118,7 +118,12 @@ def discriminator(x, batch_size, is_train, reuse):
 
     with tf.variable_scope('conv6', reuse=reuse):
       hidden_num *= 2
-      x = conv_factory_sig(x, hidden_num, 3, 2, is_train, reuse)
+      x = conv_factory_leaky(x, hidden_num, 3, 2, is_train, reuse)
+      # x = tf.nn.avg_pool(x, ksize=[1,2,2,1], strides=[1,1,1,1], padding='SAME')
+      print (x.shape)
+
+    with tf.variable_scope('conv7', reuse=reuse):
+      x = conv_factory_sig(x, 1, 1, 1, is_train, reuse)
       # x = tf.nn.avg_pool(x, ksize=[1,2,2,1], strides=[1,1,1,1], padding='SAME')
       print (x.shape)
 

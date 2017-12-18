@@ -51,14 +51,16 @@ class Trainer(object):
         self.generator = photo_to_sketch_generator
     elif self.mode == 'photo_to_sketch_GAN':
         self.generator = photo_to_sketch_generator
+        self.discriminator = discriminator
     elif self.mode == 'sketch_to_photo_GAN':
         self.generator = sketch_to_photo_generator
+        self.discriminator = discriminator
     elif self.mode == 'photo_to_sketch_GAN_UNET':
         self.generator = photo_to_sketch_generator_UNET
+        self.discriminator = discriminator
     else:
         print('Wrong mode selected. Select one of 4 available choices')
 
-    self.discriminator = discriminator
 
     self.build_model()
     self.build_gen_eval_model()
@@ -153,7 +155,9 @@ class Trainer(object):
             tf.summary.image('train_image',self.x),
             tf.summary.image('train_sketch',self.y),
             tf.summary.scalar("G_loss", self.G_loss),
-            tf.summary.scalar('D_loss', self.D_loss)
+            tf.summary.scalar('D_loss', self.D_loss),
+            tf.summary.image('D_G_x', self.D_G_x),
+            tf.summary.image('D_y', self.D_y)
             ])
 
 
@@ -308,7 +312,7 @@ class Trainer(object):
 
   def test(self):
     self.saver.restore(self.sess, self.model_dir + '/model.ckpt-0')
-    
+    G_loss = 0
     for i in range(100):
       fetch_dict_gen = {
         'x': self.test_x,
