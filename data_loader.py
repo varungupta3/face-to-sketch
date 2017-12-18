@@ -44,7 +44,7 @@ def get_loader(root, batch_size, img_type='photos', split='train', shuffle=True)
   elif img_type == 'sketches':
   	num_channels = 1
   else:
-  	print ('Unknown input image. Assuming 3 channel image.')
+  	print ('Unknown input image. Assuming 3 channel images.')
   	num_channels = 3
 
   with tf.device('/cpu:0'):

@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import matplotlib.pyplot as plt
 from models import *
 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 class Trainer(object):
   def __init__(self, config, img_loader, sketch_loader):
@@ -197,10 +198,10 @@ class Trainer(object):
     self.summary_op = tf.summary.merge([
       tf.summary.scalar("g_lr", self.g_lr),
       tf.summary.scalar("d_lr", self.d_lr),
-      tf.summary.image("gen_image", self.G_x),
-      tf.summary.image('train_image',self.x),
-      tf.summary.scalar("G_loss", self.G_loss),
-      tf.summary.scalar('D_loss', self.D_loss)
+      # tf.summary.image("gen_image", self.G_x),
+      # tf.summary.image('train_image',self.x),
+      # tf.summary.scalar("G_loss", self.G_loss),
+      # tf.summary.scalar('D_loss', self.D_loss)
     ])
 
   # def build_gen_eval_model(self):
@@ -219,19 +220,22 @@ class Trainer(object):
   def train(self):
     flag = False
     for step in trange(self.start_step, self.max_step):
+      print (step)
       # z = np.random.uniform(-1.0,1.0,
       #   size=[self.batch_size,100]).astype(np.float32)
 
       # feed_dict = {self.z : z}
 
       fetch_dict_gen = {
-        'gen_optim': self.G_optim,
+        # 'gen_optim': self.G_optim,
         # 'wd_optim': self.wd_optim,
-        'G_loss': self.G_loss,
+        'x': self.x,
+        'y': self.y,
+        # 'G_loss': self.G_loss,
         # 'D_x': self.D_x,
         # 'D_loss': self.D_loss,
         # 'D_G_x':self.D_G_x,
-        'G_x': self.G_x
+        # 'G_x': self.G_x
         }
 
       # fetch_dict_disc = {
@@ -244,16 +248,17 @@ class Trainer(object):
       #   # 'G_z': self.G_z
       #   }
 
-      if step % self.log_step == self.log_step - 1:
-        fetch_dict_gen.update({
-          'g_lr': self.g_lr,
-          'd_lr': self.d_lr,
-          'summary': self.summary_op })
+      # if step % self.log_step == self.log_step - 1:
+      #   fetch_dict_gen.update({
+      #     'g_lr': self.g_lr,
+      #     'd_lr': self.d_lr,
+      #     'summary': self.summary_op })
 
       result = self.sess.run(fetch_dict_gen)
-      G_loss = result['G_loss']
-      G_x = result['G_x']
       pdb.set_trace()
+      # G_loss = result['G_loss']
+      # G_x = result['G_x']
+      # pdb.set_trace()
 
       # if (step > 2000 and step <= 3000 and D_loss < 0.1) or step < 10:
         # result = self.sess.run(fetch_dict_gen)#, feed_dict =feed_dict )
