@@ -52,28 +52,28 @@ def photo_to_sketch_generator(x, batch_size, is_train, reuse):
         hidden_num /= 2
         out_channels = hidden_num
         # x = t_conv_factory(x, hidden_num, [batch_size,16,13,out_channels], 3, 1, is_train, reuse)
-        x = t_conv_factory_noact(x, hidden_num, [batch_size,16,16,out_channels], 3, 1, is_train, reuse)
+        x = t_conv_factory(x, hidden_num, [batch_size,16,16,out_channels], 3, 1, is_train, reuse)
         print (x.shape)
 
       with tf.variable_scope('deconv3', reuse=reuse):
         hidden_num /= 2
         out_channels = hidden_num
         # x = t_conv_factory(x, hidden_num, [batch_size,32,25,out_channels], 3, 1, is_train, reuse)
-        x = t_conv_factory_noact(x, hidden_num, [batch_size,32,32,out_channels], 3, 1, is_train, reuse)
+        x = t_conv_factory(x, hidden_num, [batch_size,32,32,out_channels], 3, 1, is_train, reuse)
         print (x.shape)
 
       with tf.variable_scope('deconv4', reuse=reuse):
         hidden_num /= 2
         out_channels = hidden_num
         # x = t_conv_factory(x, hidden_num, [batch_size,63,50,out_channels], 3, 1, is_train, reuse)
-        x = t_conv_factory_noact(x, hidden_num, [batch_size,64,64,out_channels], 3, 1, is_train, reuse)
+        x = t_conv_factory(x, hidden_num, [batch_size,64,64,out_channels], 3, 1, is_train, reuse)
         print (x.shape)
 
       with tf.variable_scope('deconv5', reuse=reuse):
         hidden_num /= 2
         out_channels = hidden_num
         # x = t_conv_factory(x, hidden_num, [batch_size,125,100,out_channels], 3, 1, is_train, reuse)
-        x = t_conv_factory_noact(x, hidden_num, [batch_size,128,128,out_channels], 3, 1, is_train, reuse)
+        x = t_conv_factory(x, hidden_num, [batch_size,128,128,out_channels], 3, 1, is_train, reuse)
         print (x.shape)
 
       with tf.variable_scope('deconv6', reuse=reuse):
