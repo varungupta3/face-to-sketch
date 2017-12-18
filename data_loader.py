@@ -38,7 +38,8 @@ def get_loader(root, batch_size, img_type='photos', split='train', shuffle=True)
     img_batch: A (float) tensor containing a batch of images.
     lab_batch: A (int) tensor containing a batch of labels.
   """
-  img_paths_np = read_labeled_image_list(root+split+'/'+img_type)
+
+  img_paths_np = read_labeled_image_list(root+'/'+split+'/'+img_type)
   if img_type == 'photos':
   	num_channels = 3
   elif img_type == 'sketches':
