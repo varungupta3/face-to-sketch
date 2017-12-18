@@ -40,6 +40,7 @@ def get_loader(root, batch_size, img_type='photos', split='train', shuffle=True)
   """
 
   img_paths_np = read_labeled_image_list(root+'/'+split+'/'+img_type)
+  print (img_paths_np)
   if img_type == 'photos':
   	num_channels = 3
   elif img_type == 'sketches':
@@ -47,7 +48,7 @@ def get_loader(root, batch_size, img_type='photos', split='train', shuffle=True)
   else:
   	print ('Unknown input image. Assuming 3 channel images.')
   	num_channels = 3
-
+  pdb.set_trace()
   with tf.device('/cpu:0'):
     img_paths = tf.convert_to_tensor(img_paths_np, dtype=tf.string)
 

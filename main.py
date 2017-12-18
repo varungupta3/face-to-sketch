@@ -24,13 +24,13 @@ def main(config):
 
   print('Training sketches loaded!')
 
-  test_img_loader = get_loader(
-    config.data_path, config.batch_size, img_type='photos', split='test', shuffle=True)
+  # test_img_loader = get_loader(
+  #   config.data_path, config.batch_size, img_type='photos', split='test', shuffle=True)
 
   print('Testing images loaded!')
 
-  test_sketch_loader = get_loader(
-    config.data_path, config.batch_size, img_type='sketches', split='test', shuffle=True)
+  # test_sketch_loader = get_loader(
+  #   config.data_path, config.batch_size, img_type='sketches', split='test', shuffle=True)
 
   print('Testing sketches loaded!')
 

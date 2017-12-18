@@ -28,7 +28,7 @@ def photo_to_sketch_generator(x, batch_size, is_train, reuse):
         print (x.shape)
 
       with tf.variable_scope('conv5', reuse=reuse):
-        hidden_num *= 2
+        # hidden_num *= 2
         x = conv_factory_leaky(x, hidden_num, 3, 2, is_train, reuse)
         print (x.shape)
 
@@ -52,7 +52,7 @@ def photo_to_sketch_generator(x, batch_size, is_train, reuse):
         print (x.shape)
 
       with tf.variable_scope('deconv2', reuse=reuse):
-        hidden_num /= 2
+        # hidden_num /= 2
         out_channels = hidden_num
         x = t_conv_factory_leaky(x, hidden_num, [batch_size,13,16,out_channels], 3, 1, is_train, reuse)
         print (x.shape)
