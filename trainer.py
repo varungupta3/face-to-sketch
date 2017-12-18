@@ -286,6 +286,7 @@ class Trainer(object):
       if step % self.save_step == self.save_step - 1:
         self.saver.save(self.sess, self.model_dir + '/model')
 
+        G_loss_test = 0
         for i in range(100):
           fetch_dict_gen = {
             'x': self.test_x,
