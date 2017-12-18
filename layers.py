@@ -75,6 +75,42 @@ def conv_factory(x, hidden_num, kernel_size, stride, is_train, reuse):
   return x
 
 
+def conv_factory_sig(x, hidden_num, kernel_size, stride, is_train, reuse):
+  vs = tf.get_variable_scope()
+  in_channels = x.get_shape()[3]
+
+  W = tf.get_variable('weights', [kernel_size,kernel_size,in_channels,hidden_num],
+        initializer = tf.contrib.layers.variance_scaling_initializer())
+  # b = tf.get_variable('biases', [1, 1, 1, hidden_num],
+  #       initializer = tf.constant_initializer(0.0))
+
+  x = tf.nn.conv2d(x, W, strides=[1,stride,stride,1], padding='SAME')
+#  x = slim.batch_norm(x, is_training=is_train, reuse=reuse, scale=True,
+#        fused=True, scope=vs, updates_collections=None)
+  x = batch_norm(x, is_train=is_train)
+  # x = tf.nn.relu(x)
+  x = tf.nn.sigmoid(x)
+  return x
+
+def conv_factory_leaky_nbn(x, hidden_num, kernel_size, stride, is_train, reuse):
+  vs = tf.get_variable_scope()
+  in_channels = x.get_shape()[3]
+
+  W = tf.get_variable('weights', [kernel_size,kernel_size,in_channels,hidden_num],
+        initializer = tf.contrib.layers.variance_scaling_initializer())
+  # b = tf.get_variable('biases', [1, 1, 1, hidden_num],
+  #       initializer = tf.constant_initializer(0.0))
+
+  x = tf.nn.conv2d(x, W, strides=[1,stride,stride,1], padding='SAME')
+#  x = slim.batch_norm(x, is_training=is_train, reuse=reuse, scale=True,
+#        fused=True, scope=vs, updates_collections=None)
+  # x = batch_norm(x, is_train=is_train)
+  x = leaky_relu(x)
+  # x = tf.nn.sigmoid(x)
+  return x
+
+
+
 def conv_factory_leaky(x, hidden_num, kernel_size, stride, is_train, reuse):
   vs = tf.get_variable_scope()
   in_channels = x.get_shape()[3]

@@ -107,17 +107,19 @@ class Trainer(object):
         y = self.y
         self.G_x, self.G_var = self.generator(x, self.batch_size, 
           is_train = True, reuse = False)
+
+        G_x = self.G_x
         pdb.set_trace()
-        D_G_x_in = tf.concat([G_x,x], axis=1) # Concatenates image and sketch along channel axis for generated image
-        D_y_in = tf.concat([y,x], axis=1) # Concatenates image and sketch along channel axis for ground truth image
+        D_G_x_in = tf.concat([G_x,x], axis=3) # Concatenates image and sketch along channel axis for generated image
+        D_y_in = tf.concat([y,x], axis=3) # Concatenates image and sketch along channel axis for ground truth image
         D_in = tf.concat([D_G_x_in, D_y_in], axis=0) # Batching ground truth and generator output as input for discriminator
         D_out, self.D_var = self.discriminator(D_in, self.batch_size*2,
             is_train=True, reuse=False)
         self.D_G_x = D_out[0:self.batch_size]
         self.D_y = D_out[self.batch_size:]
         self.G_loss = tf.reduce_mean(tf.abs(self.G_x-y)) # L1 loss
-        D_loss_real = tf.reduce_mean(tf.log(tf.nn.sigmoid(self.D_y)))
-        D_loss_fake = tf.reduce_mean(tf.log(tf.constant([1],dtype=tf.float64) - tf.nn.sigmoid(self.D_G_x)))
+        D_loss_real = tf.reduce_mean(tf.log(self.D_y))
+        D_loss_fake = tf.reduce_mean(tf.log(tf.constant([1],dtype=tf.float32) - self.D_G_x))
         self.D_loss = D_loss_fake + D_loss_real
         gen_optimizer = tf.train.AdamOptimizer(self.g_lr, beta1 = 0.5, beta2=0.999)
         disc_optimizer = tf.train.AdamOptimizer(self.d_lr, beta1 = 0.5, beta2=0.999)
@@ -138,16 +140,16 @@ class Trainer(object):
         y = self.y
         self.G_x, self.G_var = self.generator(x, self.batch_size, 
           is_train = True, reuse = False)
-        D_G_x_in = tf.concat([G_x,x], axis=1) # Concatenates image and sketch along channel axis for generated image
-        D_y_in = tf.concat([y,x], axis=1) # Concatenates image and sketch along channel axis for ground truth image
+        D_G_x_in = tf.concat([G_x,x], axis=3) # Concatenates image and sketch along channel axis for generated image
+        D_y_in = tf.concat([y,x], axis=3) # Concatenates image and sketch along channel axis for ground truth image
         D_in = tf.concat([D_G_x_in, D_y_in], axis=0) # Batching ground truth and generator output as input for discriminator
         D_out, self.D_var = self.discriminator(D_in, self.batch_size*2,
             is_train=True, reuse=False)
         self.D_G_x = D_out[0:self.batch_size]
         self.D_y = D_out[self.batch_size:]
         self.G_loss = tf.reduce_mean(tf.abs(self.G_x-y)) # L1 loss
-        D_loss_real = tf.reduce_mean(tf.log(tf.nn.sigmoid(self.D_y)))
-        D_loss_fake = tf.reduce_mean(tf.log(tf.constant([1],dtype=tf.float64) - tf.nn.sigmoid(self.D_G_x)))
+        D_loss_real = tf.reduce_mean(tf.log(self.D_y))
+        D_loss_fake = tf.reduce_mean(tf.log(tf.constant([1],dtype=tf.float32) - self.D_G_x))
         self.D_loss = D_loss_fake + D_loss_real
         gen_optimizer = tf.train.AdamOptimizer(self.g_lr, beta1 = 0.5, beta2=0.999)
         disc_optimizer = tf.train.AdamOptimizer(self.d_lr, beta1 = 0.5, beta2=0.999)
@@ -168,16 +170,16 @@ class Trainer(object):
         y = self.y
         self.G_x, self.G_var = self.generator(x, self.batch_size, 
           is_train = True, reuse = False)
-        D_G_x_in = tf.concat([G_x,x], axis=1) # Concatenates image and sketch along channel axis for generated image
-        D_y_in = tf.concat([y,x], axis=1) # Concatenates image and sketch along channel axis for ground truth image
+        D_G_x_in = tf.concat([G_x,x], axis=3) # Concatenates image and sketch along channel axis for generated image
+        D_y_in = tf.concat([y,x], axis=3) # Concatenates image and sketch along channel axis for ground truth image
         D_in = tf.concat([D_G_x_in, D_y_in], axis=0) # Batching ground truth and generator output as input for discriminator
         D_out, self.D_var = self.discriminator(D_in, self.batch_size*2,
             is_train=True, reuse=False)
         self.D_G_x = D_out[0:self.batch_size]
         self.D_y = D_out[self.batch_size:]
         self.G_loss = tf.reduce_mean(tf.abs(self.G_x-y)) # L1 loss
-        D_loss_real = tf.reduce_mean(tf.log(tf.nn.sigmoid(self.D_y)))
-        D_loss_fake = tf.reduce_mean(tf.log(tf.constant([1],dtype=tf.float64) - tf.nn.sigmoid(self.D_G_x)))
+        D_loss_real = tf.reduce_mean(tf.log(self.D_y))
+        D_loss_fake = tf.reduce_mean(tf.log(tf.constant([1],dtype=tf.float32) - self.D_G_x))
         self.D_loss = D_loss_fake + D_loss_real
         gen_optimizer = tf.train.AdamOptimizer(self.g_lr, beta1 = 0.5, beta2=0.999)
         disc_optimizer = tf.train.AdamOptimizer(self.d_lr, beta1 = 0.5, beta2=0.999)
