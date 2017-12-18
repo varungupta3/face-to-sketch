@@ -7,8 +7,7 @@ from tqdm import trange
 import matplotlib
 # matplotlib.use('agg')
 import matplotlib.pyplot as plt
-import matplotlib.pyplot as plt
-from models import *
+from models_v1 import *
 
 class Trainer(object):
   def __init__(self, config, img_loader, sketch_loader, img_loader_test, sketch_loader_test):
