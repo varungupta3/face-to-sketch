@@ -317,7 +317,7 @@ class Trainer(object):
       fetch_dict_gen = {
         'x': self.test_x,
         'y': self.test_y,
-        'G_loss': self.G_loss,
+        'G_loss': self.G_loss_test,
         'G_x': self.G_x_test}
 
       result = self.sess.run(fetch_dict_gen)
