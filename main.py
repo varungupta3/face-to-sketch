@@ -31,7 +31,7 @@ def main(config):
   else:
     if not config.load_path:
       raise Exception("[!] You should specify `load_path` to load a pretrained model")
-    trainer.gen_image()
+    trainer.test()
 
 if __name__ == "__main__":
   config, unparsed = get_config()

@@ -137,3 +137,89 @@ def discriminator(x, batch_size, is_train, reuse):
 
   variables = tf.contrib.framework.get_variables(vs)
   return x, variables
+
+
+def sketch_to_photo_generator(x, batch_size, is_train, reuse):
+
+  with tf.variable_scope('GEN', reuse=reuse) as vs:
+
+    with tf.variable_scope('Encoder', reuse=reuse) as vs_enc:
+      with tf.variable_scope('conv1', reuse=reuse):
+        hidden_num = 64
+        x = conv_factory_leaky(x, hidden_num, 3, 2, is_train, reuse)
+        print (x.shape)
+
+      with tf.variable_scope('conv2', reuse=reuse):
+        hidden_num *= 2
+        x = conv_factory_leaky(x, hidden_num, 3, 2, is_train, reuse)
+        print (x.shape)
+
+      with tf.variable_scope('conv3', reuse=reuse):
+        hidden_num *= 2
+        x = conv_factory_leaky(x, hidden_num, 3, 2, is_train, reuse)
+        print (x.shape)
+
+      with tf.variable_scope('conv4', reuse=reuse):
+        hidden_num *= 2
+        x = conv_factory_leaky(x, hidden_num, 3, 2, is_train, reuse)
+        print (x.shape)
+
+      with tf.variable_scope('conv5', reuse=reuse):
+        hidden_num *= 2
+        x = conv_factory_leaky(x, hidden_num, 3, 2, is_train, reuse)
+        print (x.shape)
+
+      with tf.variable_scope('conv6', reuse=reuse):
+        x = conv_factory_leaky(x, hidden_num, 3, 2, is_train, reuse)
+        print (x.shape)
+
+
+      with tf.variable_scope('dropout', reuse=reuse):
+        x = tf.nn.dropout(x, keep_prob=0.5)
+        print ('Dropout layer : ', x.shape)
+
+    with tf.variable_scope('Decoder', reuse=reuse) as vs_dec:
+      with tf.variable_scope('deconv1', reuse=reuse):
+        out_channels = hidden_num
+        # x = t_conv_factory_noact(x, hidden_num, [batch_size,8,7,out_channels], 3, 1, is_train, reuse)
+        x = t_conv_factory_noact(x, hidden_num, [batch_size,8,8,out_channels], 3, 1, is_train, reuse)
+        print (x.shape)
+
+      with tf.variable_scope('deconv2', reuse=reuse):
+        hidden_num /= 2
+        out_channels = hidden_num
+        # x = t_conv_factory(x, hidden_num, [batch_size,16,13,out_channels], 3, 1, is_train, reuse)
+        x = t_conv_factory(x, hidden_num, [batch_size,16,16,out_channels], 3, 1, is_train, reuse)
+        print (x.shape)
+
+      with tf.variable_scope('deconv3', reuse=reuse):
+        hidden_num /= 2
+        out_channels = hidden_num
+        # x = t_conv_factory(x, hidden_num, [batch_size,32,25,out_channels], 3, 1, is_train, reuse)
+        x = t_conv_factory(x, hidden_num, [batch_size,32,32,out_channels], 3, 1, is_train, reuse)
+        print (x.shape)
+
+      with tf.variable_scope('deconv4', reuse=reuse):
+        hidden_num /= 2
+        out_channels = hidden_num
+        # x = t_conv_factory(x, hidden_num, [batch_size,63,50,out_channels], 3, 1, is_train, reuse)
+        x = t_conv_factory(x, hidden_num, [batch_size,64,64,out_channels], 3, 1, is_train, reuse)
+        print (x.shape)
+
+      with tf.variable_scope('deconv5', reuse=reuse):
+        hidden_num /= 2
+        out_channels = hidden_num
+        # x = t_conv_factory(x, hidden_num, [batch_size,125,100,out_channels], 3, 1, is_train, reuse)
+        x = t_conv_factory(x, hidden_num, [batch_size,128,128,out_channels], 3, 1, is_train, reuse)
+        print (x.shape)
+
+      with tf.variable_scope('deconv6', reuse=reuse):
+        hidden_num = 3
+        out_channels = hidden_num
+        # x = t_conv_factory_noact(x, hidden_num, [batch_size,250,200,out_channels], 3, 1, is_train, reuse)
+        x = t_conv_factory_noact(x, hidden_num, [batch_size,256,256,out_channels], 3, 1, is_train, reuse)
+        print (x.shape)
+
+
+    variables = tf.contrib.framework.get_variables(vs)
+    return x,variables

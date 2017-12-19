@@ -11,15 +11,14 @@ def read_labeled_image_list(img_dir, split):
   Returns:
     List with all filenames
   """
-  f = open(img_dir + '/'+ 'train' + '.csv', 'r')
+  f = open(img_dir + '/'+ split + '.csv', 'r')
   img_paths = []
   sketch_paths = []
   for line in f:
     img_name, sketch_name = line.split(', ')
     sketch_name = sketch_name.split('\r')[0]
-    img_paths.append(img_dir + '/'+ 'train' + '/photos/' + img_name)
-    sketch_paths.append(img_dir + '/'+ 'train' + '/sketches/' + sketch_name)
-  pdb.set_trace()
+    img_paths.append(img_dir + '/'+ split + '/photos/' + img_name)
+    sketch_paths.append(img_dir + '/'+ split + '/sketches/' + sketch_name)
   # img_files = glob.glob(img_dir+'photos'+'/*.jpg')
   # sketch_files = glob.glob(img_dir+'sketches'+'/*.jpg')
   # pdb.set_trace()
@@ -59,7 +58,7 @@ def get_loader(root, batch_size, split='train', shuffle=True):
   """
 
   img_paths_np, sketch_paths_np = read_labeled_image_list(root,split)
-  	
+    
   with tf.device('/cpu:0'):
     img_paths = tf.convert_to_tensor(img_paths_np, dtype=tf.string)
     sketch_paths = tf.convert_to_tensor(sketch_paths_np, dtype=tf.string)
@@ -69,14 +68,14 @@ def get_loader(root, batch_size, split='train', shuffle=True):
 
     img, sketch = read_images_from_disk(input_queue)
 
-    img.set_shape([250, 200, 3])
     img = tf.cast(img, tf.float32)
     img = tf.image.resize_images(img, (256,256))
+    img.set_shape([256, 256, 3])
     img = tf.image.per_image_standardization(img)
 
-    sketch.set_shape([250, 200, 1])
     sketch = tf.cast(sketch, tf.float32)
     sketch = tf.image.resize_images(sketch, (256,256))
+    sketch.set_shape([256, 256, 1])
     sketch = tf.image.per_image_standardization(sketch)
 
     img_batch, sketch_batch = tf.train.batch([img, sketch], num_threads=1, batch_size=batch_size, capacity=10*batch_size)
