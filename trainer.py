@@ -248,7 +248,6 @@ class Trainer(object):
 
 
 
-
   def build_gen_eval_model(self):
     if self.mode == 'photo_to_sketch_generator':
       self.test_x = self.img_loader_test
@@ -309,6 +308,43 @@ class Trainer(object):
       self.test_x = self.sketch_loader_test
       test_x = self.test_x
       self.test_y = self.img_loader_test
+      test_y = self.test_y
+
+      self.G_x_test, G_var = self.generator(test_x, self.batch_size_eval, 
+        is_train = False, reuse = True)
+
+      G_x_test = self.G_x_test
+
+      D_G_x_in = tf.concat([G_x_test,test_x], axis=3) # Concatenates image and sketch along channel axis for generated image
+      D_y_in = tf.concat([test_y,test_x], axis=3) # Concatenates image and sketch along channel axis for ground truth image
+
+      self.D_G_x_test, D_Var = self.discriminator(D_G_x_in, self.batch_size_eval, 
+        is_train = False, reuse = True)
+
+      self.D_y_test, D_Var = self.discriminator(D_y_in, self.batch_size_eval, 
+        is_train = False, reuse = True)
+
+      D_loss_real = tf.reduce_mean(tf.log(self.D_y_test))
+      D_loss_fake = tf.reduce_mean(tf.log(tf.constant([1],dtype=tf.float32) - self.D_G_x_test))
+      self.D_loss_test = D_loss_fake + D_loss_real
+      self.G_loss_test = tf.reduce_mean(tf.abs(self.G_x_test-test_y))*0.5 - self.D_loss_test # L1 loss
+      self.G_loss_test_L1 = tf.reduce_mean(tf.abs(self.G_x_test-test_y)) # L1 loss
+
+      self.summary_op_test = tf.summary.merge([
+        tf.summary.image("gen_test_image", self.G_x_test),
+        tf.summary.image('test_sketch',self.test_x),
+        tf.summary.image('test_image',self.test_y),
+        tf.summary.scalar("G_loss", self.G_loss_test),
+        tf.summary.scalar("G_loss_L1", self.G_loss_test_L1),
+        tf.summary.image("D_G_x_test", self.D_G_x_test),
+        tf.summary.image("D_y_test", self.D_y_test),
+        tf.summary.scalar("D_loss_test", self.D_loss_test)
+        ])
+
+    elif self.mode == 'photo_to_sketch_GAN_UNET':
+      self.test_x = self.img_loader_test
+      test_x = self.test_x
+      self.test_y = self.sketch_loader_test
       test_y = self.test_y
 
       self.G_x_test, G_var = self.generator(test_x, self.batch_size_eval, 
@@ -527,7 +563,8 @@ class Trainer(object):
 
       G_loss /= 100
 
-    elif self.mode == 'photo_to_sketch_GAN':
+    # elif self.mode == 'photo_to_sketch_GAN':
+    else:
       G_loss = 0
       for i in range(1000):
         fetch_dict_gen = {
