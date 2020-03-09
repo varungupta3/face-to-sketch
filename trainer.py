@@ -549,7 +549,8 @@ class Trainer(object):
           'x': self.test_x,
           'y': self.test_y,
           'G_loss': self.G_loss_test,
-          'G_x': self.G_x_test}
+          'G_x': self.G_x_test,
+          'summary_test': self.summary_op_test}
 
         # feed_dict = {
         #   self.test_x : x_image
@@ -557,6 +558,8 @@ class Trainer(object):
 
         # result = self.sess.run(fetch_dict_gen,feed_dict=feed_dict)
         result = self.sess.run(fetch_dict_gen)
+        self.summary_writer.add_summary(result_test['summary_test'], step)
+        self.summary_writer.flush()
         # pdb.set_trace()
 
         G_loss += result['G_loss']
@@ -571,7 +574,8 @@ class Trainer(object):
           'x': self.test_x,
           'y': self.test_y,
           'G_loss': self.G_loss_test,
-          'G_x': self.G_x_test}
+          'G_x': self.G_x_test,
+          'summary_test': self.summary_op_test}
 
         # feed_dict = {
         #   self.test_x : x_image
@@ -579,7 +583,9 @@ class Trainer(object):
 
         # result = self.sess.run(fetch_dict_gen,feed_dict=feed_dict)
         result = self.sess.run(fetch_dict_gen)
-        # pdb.set_trace()
+        self.summary_writer.add_summary(result['summary_test'], i)
+        self.summary_writer.flush()
+        pdb.set_trace()
 
         G_loss += result['G_loss']
 
